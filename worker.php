@@ -1,12 +1,14 @@
 <?php
-$db = new PDO("sqlite:/var/www/database/leanoj.db");
+$db_path = "/home/ansar/leanoj/database/leanoj.db";
+
+$db = new PDO("sqlite:$db_path");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
 echo "Worker started...\n";
 
 while (true) {
-  $stmt = $db->prepare("SELECT s.*, p.template FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PENDING' LIMIT 1");
+  $stmt = $db->prepare("SELECT s.*, p.template, p.title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PENDING' LIMIT 1");
   $stmt->execute();
   $s = $stmt->fetch();
 
@@ -14,17 +16,23 @@ while (true) {
     echo "Processing submission #{$s["id"]}\n";
 
     $boxId = 0;
-    $checkerFiles = __DIR__ . "/checker_files";
+    $checkerFiles = "/home/ansar/leanoj/checker-files";
     $metaFile = __DIR__ . "/meta.txt";
+    $isXyzzy = ($s['title'] === "xyzzy");
     
-    file_put_contents($checkerFiles . "/template.lean", $s["template"]);
+    if (!$isXyzzy) {
+      file_put_contents($checkerFiles . "/template.lean", $s["template"]);
+    }
     file_put_contents($checkerFiles . "/submission.lean", $s["source"]);
 
     $boxPath = trim(shell_exec("isolate --box-id=$boxId --cg --init"));
     
-    $toolchain = "/usr/local/elan/toolchains/leanprover--lean4---v4.26.0";
-    $checkerPath = __DIR__ . "/checker";
+    $toolchain = "/home/ansar/.elan/toolchains/leanprover--lean4---v4.27.0";
+    $checkerPath = "/home/ansar/leanoj/leanoj-checker";
     $leanPath = "/checker/.lake/packages/batteries/.lake/build/lib/lean:/checker/.lake/packages/Qq/.lake/build/lib/lean:/checker/.lake/packages/aesop/.lake/build/lib/lean:/checker/.lake/packages/proofwidgets/.lake/build/lib/lean:/checker/.lake/packages/importGraph/.lake/build/lib/lean:/checker/.lake/packages/mathlib/.lake/build/lib/lean:/checker/.lake/packages/plausible/.lake/build/lib/lean:/checker/.lake/packages/LeanSearchClient/.lake/build/lib/lean:";
+
+    $checkerBinary = $isXyzzy ? ".lake/build/bin/xyzzy" : ".lake/build/bin/check";
+    $checkerArgs = $isXyzzy ? "/box submission.lean" : "/box template.lean submission.lean";
 
     $runCmd = [
       "isolate --run --cg --box-id=$boxId",
@@ -40,7 +48,7 @@ while (true) {
       "--env=LEAN_PATH=" . escapeshellarg($leanPath),
       "--env=PATH=/lean/bin:/usr/bin",
       "--chdir=/checker",
-      "-- .lake/build/bin/check /box template.lean submission.lean"
+      "-- $checkerBinary $checkerArgs"
     ];
 
     shell_exec(implode(" ", $runCmd));

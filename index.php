@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-$db_path = "<DB_PATH>";
+$db_path = "/home/ansar/leanoj/database/leanoj.db";
 
 $db = new PDO("sqlite:" . $db_path);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -91,6 +91,26 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_problem", ["id" => $problem_id]);
   }
 
+  elseif ($action === "xyzzy" && isset($_SESSION['user_id'])) {
+    $err = validate_file('source_file');
+    if ($err) {
+      redirect("xyzzy", [], $err);
+    }
+    $stmt = $db->prepare("SELECT id FROM problems WHERE title = 'xyzzy' LIMIT 1");
+    $stmt->execute();
+    $prob = $stmt->fetch();
+    if (!$prob) {
+      redirect("view_problems", [], "Special problem not configured");
+    }
+    $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, status) VALUES (:problem, :user, :source, :status)");
+    $stmt->bindValue(":problem", $prob['id']);
+    $stmt->bindValue(":user", $_SESSION['user_id']);
+    $stmt->bindValue(":source", file_get_contents($_FILES['source_file']['tmp_name']));
+    $stmt->bindValue(":status", "PENDING");
+    $stmt->execute();
+    redirect("xyzzy");
+  }
+
   elseif ($action === "add_problem" && $_SESSION['username'] === 'admin') {
     $title = trim($_POST['title'] ?? '');
     $statement = trim($_POST['statement'] ?? '');
@@ -178,7 +198,9 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     }
     $user_submissions = [];
     $all_submissions = [];
-    $is_solved = false;
+    $is_admin = ($_SESSION['username'] ?? '') === 'admin';
+    $is_xyzzy = ($problem['title'] === 'xyzzy');
+
     if (isset($_SESSION['user_id'])) {
       $stmt = $db->prepare("SELECT * FROM submissions WHERE problem = :problem AND user = :user ORDER BY id DESC");
       $stmt->bindValue(":problem", $id);
@@ -191,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       $stmt->bindValue(":user", $_SESSION['user_id']);
       $stmt->execute();
       $is_solved = (bool)$stmt->fetchColumn();
-      if ($is_solved || ($_SESSION['username'] ?? '') === "admin") {
+      if ($is_admin || (!$is_xyzzy && $is_solved)) {
         $stmt = $db->prepare("SELECT s.*, u.username FROM submissions s JOIN users u ON s.user = u.id WHERE s.problem = :problem ORDER BY s.id DESC");
         $stmt->bindValue(":problem", $id);
         $stmt->execute();
@@ -220,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $is_solved = (bool)$stmt->fetchColumn();
     $is_owner = $submission['user'] === $_SESSION['user_id'];
     $is_admin = ($_SESSION['username'] ?? '') === 'admin';
-    if ($is_owner || $is_admin || $is_solved) {
+    if ($is_owner || $is_admin || (!$is_xyzzy && $is_solved)) {
       include "templates/view_submission.php";
     } else {
       redirect("view_problem", ["id" => $submission['problem']], "Not allowed");
