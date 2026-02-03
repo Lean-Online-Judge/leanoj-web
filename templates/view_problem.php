@@ -40,7 +40,7 @@
     <p>None yet.</p>
   <?php endif; ?>
   <h3>All Submissions</h3>
-  <?php if ($is_solved || ($_SESSION['username'] ?? '') === 'admin'): ?>
+  <?php if ($is_admin || (!$is_xyzzy && $is_solved)): ?>
     <?php if ($all_submissions): ?>
       <table>
         <thead><tr><th>ID</th><th>User</th><th>Status</th></tr></thead>

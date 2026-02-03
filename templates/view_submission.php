@@ -1,6 +1,6 @@
 <h2>
   Submission #<?= (int)$submission['id'] ?>
-  <?php if (($_SESSION['username'] ?? '') === 'admin'): ?>
+  <?php if ($is_admin): ?>
     <form method="POST" action="index.php?action=rejudge" style="display:inline;">
       <input type="hidden" name="id" value="<?= (int)$submission['id'] ?>">
       <input type="submit" value="Rejudge" onclick="return confirm('Rejudge submission?');">
