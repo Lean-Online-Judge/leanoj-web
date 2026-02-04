@@ -78,14 +78,22 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
   elseif ($action === "submit_solution" && isset($_SESSION['user_id'])) {
     $problem_id = $_POST['problem_id'] ?? 0;
-    $err = validate_file('source_file');
-    if ($err) {
-      redirect("view_problem", ["id" => $problem_id], $err);
+    $source_code = "";
+    if (isset($_FILES['source_file']) && $_FILES['source_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+      $err = validate_file('source_file');
+      if ($err) {
+        redirect("view_problem", ["id" => $problem_id], $err);
+      }
+      $source_code = file_get_contents($_FILES['source_file']['tmp_name']);
+    } elseif (!empty($_POST['source_text'])) {
+      $source_code = $_POST['source_text'];
+    } else {
+      redirect("view_problem", ["id" => $problem_id], "Solution can't be empty");
     }
     $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, status) VALUES (:problem, :user, :source, :status)");
     $stmt->bindValue(":problem", $problem_id);
     $stmt->bindValue(":user", $_SESSION['user_id']);
-    $stmt->bindValue(":source", file_get_contents($_FILES['source_file']['tmp_name']));
+    $stmt->bindValue(":source", $source_code);
     $stmt->bindValue(":status", "PENDING");
     $stmt->execute();
     redirect("view_problem", ["id" => $problem_id]);

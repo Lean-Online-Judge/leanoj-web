@@ -62,21 +62,27 @@
       border: 1px dashed black;
     }
     input {
-      margin-bottom: 18px;
       padding: 5px;
+    }
+    input[name="username"],
+    input[name="password"],
+    input[name="repeat-password"] {
+      margin-bottom: 18px;
     }
     input[name="title"] {
       width: 100%;
+      box-sizing: border-box;
     }
     input[type="file"] {
       border: 1px solid var(--border);
     }
     textarea {
       width: 100%;
-      margin-bottom: 18px;
+      white-space: nowrap;
+      box-sizing: border-box;
       padding: 5px;
       font-size: 0.9em;
-      min-height: 120px;
+      resize: vertical;
     }
     table {
       border-collapse: collapse;

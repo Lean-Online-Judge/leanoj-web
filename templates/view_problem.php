@@ -16,8 +16,13 @@
   <h3>Submit Solution</h3>
   <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
-    <input type="file" name="source_file" accept=".lean" required>
-    <input type="submit" value="Submit">
+    <div>
+    <textarea name="source_text" rows="4" placeholder="Paste your code here..."></textarea>
+    </div>
+  <p>Or upload as a file (.lean):</p>
+  <input type="file" name="source_file" accept=".lean">
+  &nbsp
+  <input type="submit" value="Submit">
   </form>
   <h3>Your Submissions</h3>
   <?php if ($user_submissions): ?>
