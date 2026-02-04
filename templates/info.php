@@ -9,3 +9,7 @@
 <p>
   The project is under active development. Join the <a href="https://discord.gg/a4xYPXXBxU">Discord server</a> to participate in all related discussions.
 </p>
+<p>
+<img src="logo.jpg" alt="logo"><br>
+<em>[LOJ] The logo depicts a person having a moment of enlightenment while solving a Math Olympiad problem.</em>
+</p>
