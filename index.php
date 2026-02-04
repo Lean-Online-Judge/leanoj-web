@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     header("Location: index.php?action=view_submission&id=" . $_POST['id']);
     exit;
   }
-} 
+}
 
 if ($_SERVER['REQUEST_METHOD'] === "GET") {
   include "templates/header.php";
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   }
 
   elseif ($action === "view_problems") {
-    $stmt = $db->prepare("SELECT p.*, (SELECT COUNT(DISTINCT user) FROM submissions WHERE problem = p.id AND status = 'PASSED') as solves, EXISTS(SELECT 1 FROM submissions WHERE problem = p.id AND user = :user AND status = 'PASSED') as is_solved FROM problems p ORDER BY p.id DESC");
+    $stmt = $db->prepare("SELECT p.*, (SELECT COUNT(DISTINCT user) FROM submissions WHERE problem = p.id AND status = 'PASSED' AND p.title != 'xyzzy') as solves, EXISTS(SELECT 1 FROM submissions WHERE problem = p.id AND user = :user AND status = 'PASSED' AND p.title != 'xyzzy') as is_solved FROM problems p ORDER BY p.id DESC");
     $stmt->bindValue(":user", $_SESSION['user_id'] ?? null);
     $stmt->execute();
     $problems = $stmt->fetchAll();
@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   }
 
   elseif ($action === "scoreboard") {
-    $stmt = $db->query("SELECT u.username, COUNT(DISTINCT s.problem) as solved, RANK() OVER (ORDER BY COUNT(DISTINCT s.problem) DESC) as rank FROM users u LEFT JOIN submissions s ON u.id = s.user AND s.status = 'PASSED' GROUP BY u.id ORDER BY solved DESC");
+    $stmt = $db->query("SELECT u.username, COUNT(DISTINCT s.problem) as solved, RANK() OVER (ORDER BY COUNT(DISTINCT s.problem) DESC) as rank FROM users u LEFT JOIN submissions s ON u.id = s.user AND s.status = 'PASSED' AND s.problem != (SELECT id FROM problems WHERE title = 'xyzzy' LIMIT 1) GROUP BY u.id ORDER BY solved DESC");
     $scoreboard = $stmt->fetchAll();
     include "templates/scoreboard.php";
   }
