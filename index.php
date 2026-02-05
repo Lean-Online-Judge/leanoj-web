@@ -178,15 +178,46 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   }
 
   elseif ($action === "view_problems") {
-    $stmt = $db->prepare("SELECT p.*, (SELECT COUNT(DISTINCT user) FROM submissions WHERE problem = p.id AND status = 'PASSED' AND p.title != 'xyzzy') as solves, EXISTS(SELECT 1 FROM submissions WHERE problem = p.id AND user = :user AND status = 'PASSED' AND p.title != 'xyzzy') as is_solved FROM problems p ORDER BY p.id DESC");
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+    $total_stmt = $db->query("SELECT COUNT(*) FROM problems");
+    $total_problems = $total_stmt->fetchColumn();
+    $total_pages = ceil($total_problems / $per_page);
+    $sql = "SELECT p.*,
+      (SELECT COUNT(DISTINCT user) FROM submissions WHERE problem = p.id AND status = 'PASSED' AND p.title != 'xyzzy') as solves,
+      EXISTS(SELECT 1 FROM submissions WHERE problem = p.id AND user = :user AND status = 'PASSED' AND p.title != 'xyzzy') as is_solved
+      FROM problems p
+      ORDER BY p.id DESC
+      LIMIT :limit OFFSET :offset";
+    $stmt = $db->prepare($sql);
     $stmt->bindValue(":user", $_SESSION['user_id'] ?? null);
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();
     $problems = $stmt->fetchAll();
     include "templates/view_problems.php";
   }
 
   elseif ($action === "scoreboard") {
-    $stmt = $db->query("SELECT u.username, COUNT(DISTINCT s.problem) as solved, RANK() OVER (ORDER BY COUNT(DISTINCT s.problem) DESC) as rank FROM users u LEFT JOIN submissions s ON u.id = s.user AND s.status = 'PASSED' AND s.problem != (SELECT id FROM problems WHERE title = 'xyzzy' LIMIT 1) GROUP BY u.id ORDER BY solved DESC");
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+    $total_stmt = $db->query("SELECT COUNT(*) FROM users");
+    $total_users = $total_stmt->fetchColumn();
+    $total_pages = ceil($total_users / $per_page);
+    $sql = "SELECT u.username, COUNT(DISTINCT s.problem) as solved
+      FROM users u
+      LEFT JOIN submissions s ON u.id = s.user
+        AND s.status = 'PASSED'
+        AND s.problem != (SELECT id FROM problems WHERE title = 'xyzzy' LIMIT 1)
+      GROUP BY u.id
+      ORDER BY solved DESC, u.id ASC
+      LIMIT :limit OFFSET :offset";
+    $stmt = $db->prepare($sql);
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
     $scoreboard = $stmt->fetchAll();
     include "templates/scoreboard.php";
   }
@@ -204,38 +235,36 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     if (!$problem) {
       redirect("view_problems", [], "Not found");
     }
-    $user_submissions = [];
-    $all_submissions = [];
-    $is_admin = ($_SESSION['username'] ?? '') === 'admin';
-    $is_xyzzy = ($problem['title'] === 'xyzzy');
-
-    if (isset($_SESSION['user_id'])) {
-      $stmt = $db->prepare("SELECT * FROM submissions WHERE problem = :problem AND user = :user ORDER BY id DESC");
-      $stmt->bindValue(":problem", $id);
-      $stmt->bindValue(":user", $_SESSION['user_id']);
-      $stmt->execute();
-      $user_submissions = $stmt->fetchAll();
-
-      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 FROM submissions WHERE problem = :problem AND user = :user AND status = 'PASSED')");
-      $stmt->bindValue(":problem", $id);
-      $stmt->bindValue(":user", $_SESSION['user_id']);
-      $stmt->execute();
-      $is_solved = (bool)$stmt->fetchColumn();
-      if ($is_admin || (!$is_xyzzy && $is_solved)) {
-        $stmt = $db->prepare("SELECT s.*, u.username FROM submissions s JOIN users u ON s.user = u.id WHERE s.problem = :problem ORDER BY s.id DESC");
-        $stmt->bindValue(":problem", $id);
-        $stmt->execute();
-        $all_submissions = $stmt->fetchAll();
-      }
-    }
+    $stmt = $db->prepare("SELECT s.*, u.username FROM submissions s JOIN users u ON s.user = u.id WHERE s.problem = :id ORDER BY s.id DESC LIMIT 10");
+    $stmt->bindValue(":id", $id);
+    $stmt->execute();
+    $recent_submissions = $stmt->fetchAll();
     include "templates/view_problem.php";
+  }
+
+  elseif ($action === "view_submissions") {
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+    $stmt = $db->query("SELECT COUNT(*) FROM submissions");
+    $total_submissions = $stmt->fetchColumn();
+    $total_pages = ceil($total_submissions / $per_page);
+    $sql = "SELECT s.*, p.title as problem_title, u.username
+      FROM submissions s
+      JOIN problems p ON s.problem = p.id
+      JOIN users u ON s.user = u.id
+      ORDER BY s.id DESC
+      LIMIT :limit OFFSET :offset";
+    $stmt = $db->prepare($sql);
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $submissions = $stmt->fetchAll();
+    include "templates/view_submissions.php";
   }
 
   elseif ($action === "view_submission") {
     $id = $_GET['id'] ?? 0;
-    if (!isset($_SESSION['user_id'])) {
-      redirect("login");
-    }
     $stmt = $db->prepare("SELECT s.*, p.title, u.username FROM submissions s JOIN problems p ON s.problem = p.id JOIN users u ON s.user = u.id WHERE s.id = :id");
     $stmt->bindValue(":id", $id);
     $stmt->execute();
@@ -243,18 +272,19 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     if (!$submission) {
       redirect("view_problems", [], "Not found");
     }
-    $stmt = $db->prepare("SELECT EXISTS(SELECT 1 FROM submissions WHERE problem = :problem AND user = :user AND status = 'PASSED')");
-    $stmt->bindValue(":problem", $submission['problem']);
-    $stmt->bindValue(":user", $_SESSION['user_id']);
-    $stmt->execute();
-    $is_solved = (bool)$stmt->fetchColumn();
-    $is_owner = $submission['user'] === $_SESSION['user_id'];
-    $is_admin = ($_SESSION['username'] ?? '') === 'admin';
-    if ($is_owner || $is_admin || (!$is_xyzzy && $is_solved)) {
-      include "templates/view_submission.php";
-    } else {
-      redirect("view_problem", ["id" => $submission['problem']], "Not allowed");
+    $show_source = false;
+    if (isset($_SESSION['user_id'])) {
+      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 FROM submissions WHERE problem = :problem AND user = :user AND status = 'PASSED')");
+      $stmt->bindValue(":problem", $submission['problem']);
+      $stmt->bindValue(":user", $_SESSION['user_id']);
+      $stmt->execute();
+      $is_solved = (bool)$stmt->fetchColumn();
+      $is_owner = $submission['user'] === $_SESSION['user_id'];
+      $is_admin = ($_SESSION['username'] ?? '') === 'admin';
+      $is_xyzzy = ($submission['title'] === 'xyzzy');
+      $show_source = $is_admin || $is_owner || ($is_solved && !$is_xyzzy);
     }
+    include "templates/view_submission.php";
   }
 
   elseif ($action === "add_problem" && $_SESSION['username'] === "admin") {

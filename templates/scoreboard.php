@@ -8,12 +8,22 @@
     </tr>
   </thead>
   <tbody>
-    <?php foreach ($scoreboard as $row): ?>
+    <?php foreach ($scoreboard as $index => $row): ?>
       <tr>
-        <td><?= (int)$row['rank'] ?></td>
+        <td><?= $offset + $index + 1 ?></td>
         <td><?= htmlspecialchars($row['username']) ?></td>
         <td><?= (int)$row['solved'] ?></td>
       </tr>
     <?php endforeach; ?>
   </tbody>
 </table>
+
+<div class="pagination">
+  <?php if ($page > 1): ?>
+    <a href="index.php?action=scoreboard&page=<?= $page - 1 ?>">&#9664; prev.</a>
+  <?php endif; ?>
+  <span>Page <?= $page ?> of <?= $total_pages ?></span>
+  <?php if ($page < $total_pages): ?>
+    <a href="index.php?action=scoreboard&page=<?= $page + 1 ?>">next &#9654;</a>
+  <?php endif; ?>
+</div>

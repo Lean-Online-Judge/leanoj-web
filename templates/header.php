@@ -87,7 +87,7 @@
     table {
       border-collapse: collapse;
       border: 1px solid var(--border);
-      margin: 20px 0;
+      margin: 10px 0;
     }
     th, td {
       border: 1px solid var(--border);
@@ -141,6 +141,9 @@
     .status-pending {
       color: orange;
       font-weight: bold;
+    }
+    .pagination a {
+      text-decoration: none;
     }
   </style>
 </head>
