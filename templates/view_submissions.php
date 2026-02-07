@@ -2,7 +2,7 @@
 <table>
   <thead>
     <tr>
-      <th>ID</th>
+      <th style="text-align: center">#</th>
       <th>Problem</th>
       <th>User</th>
       <th>Status</th>
@@ -13,7 +13,7 @@
       <tr>
         <td>
           <a href="index.php?action=view_submission&id=<?= (int)$s['id'] ?>">
-            #<?= (int)$s['id'] ?>
+            <?= (int)$s['id'] ?>
           </a>
         </td>
         <td>

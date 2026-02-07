@@ -3,14 +3,14 @@
   <?php if ($is_admin): ?>
     <form method="POST" action="index.php?action=rejudge" style="display:inline;">
       <input type="hidden" name="id" value="<?= (int)$submission['id'] ?>">
-      <input type="submit" value="Rejudge"">
+      <input type="submit" value="Rejudge">
     </form>
   <?php endif; ?>
 </h2>
 <table>
   <thead>
     <tr>
-      <th>ID</th>
+      <th style="text-align: center">#</th>
       <th>User</th>
       <th>Problem</th>
       <th>Status</th>
@@ -20,7 +20,7 @@
     <tr>
       <td>
         <a href="index.php?action=view_submission&id=<?= (int)$submission['id'] ?>">
-          #<?= (int)$submission['id'] ?>
+          <?= (int)$submission['id'] ?>
         </a>
       </td>
       <td><?= htmlspecialchars($submission['username']) ?></td>

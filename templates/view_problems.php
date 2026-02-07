@@ -7,6 +7,7 @@
 <table>
   <thead>
     <tr>
+      <th style="text-align: center">#</th>
       <th>Title</th>
       <th>Solved</th>
     </tr>
@@ -14,6 +15,7 @@
   <tbody>
     <?php foreach ($problems as $p): ?>
       <tr>
+        <td><?= $p['id'] ?></td>
         <td>
           <?= $p['is_solved'] ? "🎉 " : "" ?>
           <a href="index.php?action=view_problem&id=<?= (int)$p['id'] ?>">
