@@ -3,6 +3,7 @@
   <?php if ($is_admin): ?>
     <form method="POST" action="index.php?action=rejudge" style="display:inline;">
       <input type="hidden" name="id" value="<?= (int)$submission['id'] ?>">
+      <input type="submit" value="Rejudge"">
     </form>
   <?php endif; ?>
 </h2>
