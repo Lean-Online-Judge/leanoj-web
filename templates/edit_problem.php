@@ -7,6 +7,6 @@
   <textarea rows="5" name="statement" required><?= htmlspecialchars($problem['statement']) ?></textarea>
   <p>Template (Optional):</p>
   <input type="file" name="template_file" accept=".lean">
-  &nbsp
+  &nbsp;
   <input type="submit" value="Save">
 </form>

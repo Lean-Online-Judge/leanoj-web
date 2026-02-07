@@ -17,7 +17,7 @@
 <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
   <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
   <div>
-  <textarea name="source_text" rows="4" placeholder="Paste your code here..."></textarea>
+  <textarea name="source_text" style="white-space: nowrap" rows="4" placeholder="Paste your code here..."></textarea>
   </div>
 <p>Or upload as a file (.lean):</p>
 <input type="file" name="source_file" accept=".lean">
@@ -32,7 +32,7 @@
 <table>
   <thead>
     <tr>
-      <th>ID</th>
+      <th style="text-align: center">#</th>
       <th>User</th>
       <th>Status</th>
     </tr>
@@ -42,7 +42,7 @@
       <tr>
         <td>
           <a href="index.php?action=view_submission&id=<?= (int)$s['id'] ?>">
-            #<?= (int)$s['id'] ?>
+            <?= (int)$s['id'] ?>
           </a>
         </td>
         <td><?= htmlspecialchars($s['username']) ?></td>

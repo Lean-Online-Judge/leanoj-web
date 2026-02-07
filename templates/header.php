@@ -78,7 +78,6 @@
     }
     textarea {
       width: 100%;
-      white-space: nowrap;
       box-sizing: border-box;
       padding: 5px;
       font-size: 0.9em;
