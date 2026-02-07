@@ -243,19 +243,30 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   }
 
   elseif ($action === "view_submissions") {
+    $id = $_GET['id'] ?? 0;
+    $stmt = $db->prepare("SELECT * FROM problems WHERE id = :id");
+    $stmt->bindValue(":id", $id);
+    $stmt->execute();
+    $problem = $stmt->fetch();
+    if (!$problem) {
+      redirect("view_problems", [], "Not found");
+    }
     $per_page = 25;
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
     $offset = ($page - 1) * $per_page;
-    $stmt = $db->query("SELECT COUNT(*) FROM submissions");
+    $stmt = $db->prepare("SELECT COUNT(*) FROM submissions WHERE problem = :problem_id");
+    $stmt->bindValue(":problem_id", $_GET['id']);
+    $stmt->execute();
     $total_submissions = $stmt->fetchColumn();
     $total_pages = ceil($total_submissions / $per_page);
-    $sql = "SELECT s.*, p.title as problem_title, u.username
+    $sql = "SELECT s.*, u.username
       FROM submissions s
-      JOIN problems p ON s.problem = p.id
       JOIN users u ON s.user = u.id
+      WHERE s.problem = :problem_id
       ORDER BY s.id DESC
       LIMIT :limit OFFSET :offset";
     $stmt = $db->prepare($sql);
+    $stmt->bindValue(":problem_id", $problem['id']);
     $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();

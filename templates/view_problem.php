@@ -55,7 +55,7 @@
     <?php endforeach; ?>
     </tbody>
   </table>
-  <a href="index.php?action=view_submissions">View all</a>
+  <a href="index.php?action=view_submissions&id=<?= $problem['id'] ?>">View all</a>
 <?php else: ?>
   <p>None yet.</p>
 <?php endif; ?>
