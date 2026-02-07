@@ -35,7 +35,7 @@ while (true) {
     $checkerArgs = $isXyzzy ? "/box submission.lean" : "/box template.lean submission.lean";
 
     $runCmd = [
-      "isolate --run --cg --box-id=$boxId",
+      "nice -n 19 isolate --run --cg --box-id=$boxId",
       "--meta=" . escapeshellarg($metaFile),
       "--cg-mem=4194304",
       "--processes=0",
