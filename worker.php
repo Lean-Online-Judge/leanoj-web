@@ -32,7 +32,7 @@ while (true) {
     $leanPath = "/checker/.lake/packages/batteries/.lake/build/lib/lean:/checker/.lake/packages/Qq/.lake/build/lib/lean:/checker/.lake/packages/aesop/.lake/build/lib/lean:/checker/.lake/packages/proofwidgets/.lake/build/lib/lean:/checker/.lake/packages/importGraph/.lake/build/lib/lean:/checker/.lake/packages/mathlib/.lake/build/lib/lean:/checker/.lake/packages/plausible/.lake/build/lib/lean:/checker/.lake/packages/LeanSearchClient/.lake/build/lib/lean:";
 
     $checkerBinary = $isXyzzy ? ".lake/build/bin/xyzzy" : ".lake/build/bin/check";
-    $checkerArgs = $isXyzzy ? "/box submission.lean" : "/box template.lean submission.lean";
+    $checkerArgs = $isXyzzy ? "/box submission.lean" : "/box";
 
     $runCmd = [
       "nice -n 19 isolate --run --cg --box-id=$boxId",
@@ -68,21 +68,18 @@ while (true) {
     if (file_exists($metaFile)) unlink($metaFile);
 
     $options = [
-      42 => "PASSED", 
-      43 => "Bad template", 
+      42 => "PASSED",
+      43 => "Template error",
       44 => "Compilation error",
-      45 => "Environment error", 
-      46 => "Solution not found", 
-      47 => "Solution type mismatch", 
-      48 => "Forbidden axiom"
+      45 => "Template mismatch",
+      46 => "Forbidden axiom",
+      47 => "Environment error",
     ];
 
     if ($metaStatus === "TO") {
       $status = "Time limit exceeded";
     } elseif (isset($meta["cg-oom-killed"]) && $meta["cg-oom-killed"] === "1") {
       $status = "Memory limit exceeded";
-    } elseif ($exitCode === 42) {
-      $status = "PASSED";
     } elseif (isset($options[$exitCode])) {
       $status = $options[$exitCode];
     } else {
