@@ -32,7 +32,7 @@ while (true) {
     $leanPath = "/checker/.lake/packages/batteries/.lake/build/lib/lean:/checker/.lake/packages/Qq/.lake/build/lib/lean:/checker/.lake/packages/aesop/.lake/build/lib/lean:/checker/.lake/packages/proofwidgets/.lake/build/lib/lean:/checker/.lake/packages/importGraph/.lake/build/lib/lean:/checker/.lake/packages/mathlib/.lake/build/lib/lean:/checker/.lake/packages/plausible/.lake/build/lib/lean:/checker/.lake/packages/LeanSearchClient/.lake/build/lib/lean:";
 
     $checkerBinary = $isXyzzy ? ".lake/build/bin/xyzzy" : ".lake/build/bin/check";
-    $checkerArgs = $isXyzzy ? "/box submission.lean" : "/box";
+    $checkerArgs = "/box";
 
     $runCmd = [
       "nice -n 19 isolate --run --cg --box-id=$boxId",
