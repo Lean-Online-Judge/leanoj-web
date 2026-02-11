@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $password = $_POST['password'] ?? '';
     $repeat = $_POST['repeat-password'] ?? '';
     if (empty($username) || empty($password)) {
-      redirect("register", [], "Fill in all fieds");
+      redirect("register", [], "Fill in all fields");
     }
     if ($password !== $repeat) {
       redirect("register", [], "Passwords do not match");
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   elseif ($action === "submit_solution" && isset($_SESSION['user_id'])) {
     $problem_id = $_POST['problem_id'] ?? 0;
     $source_code = "";
-    if (isset($_FILES['source_file']) && $_FILES['source_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if (isset($_FILES['source_file'])) {
       $err = validate_file('source_file');
       if ($err) {
         redirect("view_problem", ["id" => $problem_id], $err);
@@ -120,40 +120,77 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   }
 
   elseif ($action === "add_problem" && $_SESSION['username'] === 'admin') {
-    $title = trim($_POST['title'] ?? '');
-    $statement = trim($_POST['statement'] ?? '');
-    $err = validate_file('template_file');
-    if (empty($title) || empty($statement) || $err) {
-      redirect("add_problem", [], $err ?: "Fill in all fields");
+    $title = trim($_POST['title']);
+    $statement = trim($_POST['statement']);
+    $template = trim($_POST['template_text']);
+    $answer = trim($_POST['answer_text']);
+    if (empty($title) || empty($statement)) {
+      redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
-    $stmt = $db->prepare("INSERT INTO problems (title, statement, template) VALUES (:title, :statement, :template)");
+    if (isset($_FILES['template_file']) && $_FILES['template_file']['error'] === UPLOAD_ERR_OK) {
+      $err = validate_file('template_file');
+      if ($err) {
+        redirect("edit_problem", ["id" => $id], $err);
+      }
+      $template = trim(file_get_contents($_FILES['template_file']['tmp_name']));
+    }
+    if (empty($template)) {
+      redirect("edit_problem", ["id" => $id], "Fill in required fields");
+    }
+    if (isset($_FILES['answer_file']) && $_FILES['answer_file']['error'] === UPLOAD_ERR_OK) {
+      $err = validate_file('answer_file');
+      if ($err) {
+        redirect("edit_problem", ["id" => $id], $err);
+      }
+      $answer = trim(file_get_contents($_FILES['answer_file']['tmp_name']));
+    }
+    if (empty($answer)) {
+      $answer = null;
+    }
+    $stmt = $db->prepare("INSERT INTO problems (title, statement, template, answer) VALUES (:title, :statement, :template, :answer)");
     $stmt->bindValue(":title", $title);
     $stmt->bindValue(":statement", $statement);
-    $stmt->bindValue(":template", file_get_contents($_FILES['template_file']['tmp_name']));
+    $stmt->bindValue(":template", $template);
+    $stmt->bindValue(":answer", $answer);
     $stmt->execute();
     redirect("view_problem", ["id" => $db->lastInsertId()]);
   }
 
   elseif ($action === "edit_problem" && $_SESSION['username'] === 'admin') {
-    $id = $_POST['id'] ?? 0;
-    $title = trim($_POST['title'] ?? '');
-    $statement = trim($_POST['statement'] ?? '');
+    $id = $_POST['id'];
+    $title = trim($_POST['title']);
+    $statement = trim($_POST['statement']);
+    $template = trim($_POST['template_text']);
+    $answer = trim($_POST['answer_text']);
     if (empty($title) || empty($statement)) {
-      redirect("edit_problem", ["id" => $id], "Fill in all required fields");
+      redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
-    if (!empty($_FILES['template_file']['tmp_name'])) {
+    if (isset($_FILES['template_file']) && $_FILES['template_file']['error'] === UPLOAD_ERR_OK) {
       $err = validate_file('template_file');
       if ($err) {
         redirect("edit_problem", ["id" => $id], $err);
       }
-      $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement, template = :template WHERE id = :id");
-      $stmt->bindValue(":template", file_get_contents($_FILES['template_file']['tmp_name']));
-    } else {
-      $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement WHERE id = :id");
+      $template = trim(file_get_contents($_FILES['template_file']['tmp_name']));
     }
+    if (empty($template)) {
+      redirect("edit_problem", ["id" => $id], "Fill in required fields");
+    }
+    if (isset($_FILES['answer_file']) && $_FILES['answer_file']['error'] === UPLOAD_ERR_OK) {
+      $err = validate_file('answer_file');
+      if ($err) {
+        redirect("edit_problem", ["id" => $id], $err);
+      }
+      $answer = trim(file_get_contents($_FILES['answer_file']['tmp_name']));
+    }
+    if (empty($answer)) {
+      $answer = null;
+    }
+    $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement, template = :template, answer = :answer WHERE id = :id");
+    $stmt->bindValue(":id", $id);
     $stmt->bindValue(":title", $title);
     $stmt->bindValue(":statement", $statement);
-    $stmt->bindValue(":id", $id);
+    $stmt->bindValue(":template", $template);
+    $stmt->bindValue(":answer", $answer);
     $stmt->execute();
     redirect("view_problem", ["id" => $id]);
   }
@@ -296,6 +333,22 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       $show_source = $is_admin || $is_owner || ($is_solved && !$is_xyzzy);
     }
     include "templates/view_submission.php";
+  }
+
+  elseif ($action === "answer_bank") {
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+    $total_stmt = $db->query("SELECT COUNT(*) FROM problems WHERE answer IS NOT NULL");
+    $total_problems = $total_stmt->fetchColumn();
+    $total_pages = ceil($total_problems / $per_page);
+
+    $stmt = $db->prepare("SELECT answer FROM problems where answer IS NOT NULL LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $answers = $stmt->fetchAll();
+    include "templates/answer_bank.php";
   }
 
   elseif ($action === "add_problem" && $_SESSION['username'] === "admin") {

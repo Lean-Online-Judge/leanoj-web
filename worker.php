@@ -8,7 +8,7 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 echo "Worker started...\n";
 
 while (true) {
-  $stmt = $db->prepare("SELECT s.*, p.template, p.title FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PENDING' LIMIT 1");
+  $stmt = $db->prepare("SELECT s.*, p.template, p.title, p.answer FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PENDING' LIMIT 1");
   $stmt->execute();
   $s = $stmt->fetch();
 
@@ -18,21 +18,24 @@ while (true) {
     $boxId = 0;
     $checkerFiles = "/home/ansar/leanoj/checker-files";
     $metaFile = __DIR__ . "/meta.txt";
-    $isXyzzy = ($s['title'] === "xyzzy");
+    $checkerBinary = ".lake/build/bin/check";
     
-    if (!$isXyzzy) {
+    file_put_contents($checkerFiles . "/submission.lean", $s["source"]);
+    if ($s['title'] === "xyzzy") {
+      $checkerBinary = ".lake/build/bin/xyzzy";
+    } else {
       file_put_contents($checkerFiles . "/template.lean", $s["template"]);
     }
-    file_put_contents($checkerFiles . "/submission.lean", $s["source"]);
+    if (isset($s['answer'])) {
+      file_put_contents($checkerFiles . "/answer.lean", $s["answer"]);
+      $checkerBinary = ".lake/build/bin/check_with_answer";
+    }
 
     $boxPath = trim(shell_exec("isolate --box-id=$boxId --cg --init"));
     
     $toolchain = "/home/ansar/.elan/toolchains/leanprover--lean4---v4.27.0";
     $checkerPath = "/home/ansar/leanoj/leanoj-checker";
     $leanPath = "/checker/.lake/packages/batteries/.lake/build/lib/lean:/checker/.lake/packages/Qq/.lake/build/lib/lean:/checker/.lake/packages/aesop/.lake/build/lib/lean:/checker/.lake/packages/proofwidgets/.lake/build/lib/lean:/checker/.lake/packages/importGraph/.lake/build/lib/lean:/checker/.lake/packages/mathlib/.lake/build/lib/lean:/checker/.lake/packages/plausible/.lake/build/lib/lean:/checker/.lake/packages/LeanSearchClient/.lake/build/lib/lean:";
-
-    $checkerBinary = $isXyzzy ? ".lake/build/bin/xyzzy" : ".lake/build/bin/check";
-    $checkerArgs = "/box";
 
     $runCmd = [
       "nice -n 19 isolate --run --cg --box-id=$boxId",
@@ -48,7 +51,7 @@ while (true) {
       "--env=LEAN_PATH=" . escapeshellarg($leanPath),
       "--env=PATH=/lean/bin:/usr/bin",
       "--chdir=/checker",
-      "-- $checkerBinary $checkerArgs"
+      "-- $checkerBinary /box"
     ];
 
     shell_exec(implode(" ", $runCmd));
@@ -65,15 +68,16 @@ while (true) {
     $metaStatus = $meta["status"] ?? "OK";
 
     shell_exec("isolate --box-id=$boxId --cg --cleanup");
-    if (file_exists($metaFile)) unlink($metaFile);
+    /* if (file_exists($metaFile)) unlink($metaFile); */
 
     $options = [
       42 => "PASSED",
-      43 => "Template error",
-      44 => "Compilation error",
-      45 => "Template mismatch",
-      46 => "Forbidden axiom",
-      47 => "Environment error",
+      44 => "Judge error",
+      45 => "Compilation error",
+      46 => "Environment error",
+      47 => "Forbidden axiom",
+      48 => "Template mismatch",
+      49 => "Bad answer",
     ];
 
     if ($metaStatus === "TO") {

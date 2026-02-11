@@ -1,12 +1,19 @@
 <h2>Edit Problem</h2>
 <form method="POST" action="index.php?action=edit_problem" enctype="multipart/form-data">
-  <input type="hidden" name="id" value="<?= (int)$problem['id'] ?>">
-  <p>Title:</p>
-  <input type="text" name="title" value="<?= htmlspecialchars($problem['title']) ?>" required>
-  <p>Statement:</p>
-  <textarea rows="5" name="statement" required><?= htmlspecialchars($problem['statement']) ?></textarea>
-  <p>Template (Optional):</p>
+  <input type="hidden" name="id" value="<?= $problem['id'] ?>">
+  <h3>Title</h3>
+  <input type="text" name="title" value=<?= $problem['title'] ?> required>
+  <h3>Statement</h3>
+  <textarea rows="4" name="statement" required><?= $problem['statement'] ?></textarea>
+  <h3>Template</h3>
+  <textarea name="template_text" style="white-space: nowrap" rows="4"><?= $problem['template'] ?></textarea>
+  <p>Or upload as a file (.lean)</p>
   <input type="file" name="template_file" accept=".lean">
-  &nbsp;
-  <input type="submit" value="Save">
+  <h3>Answer</h3>
+  <textarea name="answer_text" style="white-space: nowrap" rows="1"><?= $problem['answer'] ?></textarea>
+  <p>Or upload as a file (.lean)</p>
+  <input type="file" name="answer_file" accept=".lean">
+  <div style="width: 100%; display: flex; justify-content: flex-end">
+    <input type="submit" value="Save Changes">
+  </div>
 </form>

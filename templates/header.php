@@ -81,6 +81,7 @@
       box-sizing: border-box;
       padding: 5px;
       font-size: 0.9em;
+      min-height: 30px;
       resize: vertical;
     }
     table {
@@ -117,7 +118,7 @@
       top: 10px;
       right: 10px;
       font-size: 0.7rem;
-      padding: 4px 8px;
+      padding: 1px 6px;
     }
     .message {
       background: #fff5f5;
@@ -152,6 +153,7 @@
   <nav>
     <a href="index.php">Problems</a>
     <a href="index.php?action=scoreboard">Scoreboard</a>
+    <a href="index.php?action=answer_bank">Answer Bank</a>
     <a href="index.php?action=info">What is this?</a>
     <?php if (isset($_SESSION['user_id'])): ?>
       <span>
