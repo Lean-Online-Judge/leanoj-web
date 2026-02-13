@@ -1,7 +1,18 @@
 <?php
 session_start();
 
-$db_path = "/home/ansar/leanoj/database/leanoj.db";
+// Load .env
+$env_file = __DIR__ . '/.env';
+if (!file_exists($env_file)) {
+    die('Missing .env file');
+}
+
+$env = parse_ini_file($env_file, false, INI_SCANNER_RAW);
+if ($env === false || empty($env['DB_PATH'])) {
+    die('DB_PATH not configured in .env');
+}
+
+$db_path = $env['DB_PATH'];
 
 $db = new PDO("sqlite:" . $db_path);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
