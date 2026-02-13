@@ -15,7 +15,4 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
-          cd ${{ secrets.VPS_PATH }}
-          git pull
-          cp -r index.php template /var/www/html
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd ${{ secrets.VPS_PATH }} && git pull && cp -r index.php templates /var/www/html"
