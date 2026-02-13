@@ -1,5 +1,17 @@
 <?php
-$db_path = "/home/ansar/leanoj/database/leanoj.db";
+
+// Load .env
+$env_file = __DIR__ . '/.env';
+if (!file_exists($env_file)) {
+    die('Missing .env file');
+}
+
+$env = parse_ini_file($env_file, false, INI_SCANNER_RAW);
+if ($env === false || empty($env['DB_PATH'])) {
+    die('DB_PATH not configured in .env');
+}
+
+$db_path = $env['DB_PATH'];
 
 $db = new PDO("sqlite:$db_path");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -16,10 +28,10 @@ while (true) {
     echo "Processing submission #{$s["id"]}\n";
 
     $boxId = 0;
-    $checkerFiles = "/home/ansar/leanoj/checker-files";
+    $checkerFiles = $env['CHECKER_FILES'];
     $metaFile = __DIR__ . "/meta.txt";
     $checkerBinary = ".lake/build/bin/check";
-    
+
     file_put_contents($checkerFiles . "/submission.lean", $s["source"]);
     if ($s['title'] === "xyzzy") {
       $checkerBinary = ".lake/build/bin/xyzzy";
@@ -32,9 +44,9 @@ while (true) {
     }
 
     $boxPath = trim(shell_exec("isolate --box-id=$boxId --cg --init"));
-    
-    $toolchain = "/home/ansar/.elan/toolchains/leanprover--lean4---v4.27.0";
-    $checkerPath = "/home/ansar/leanoj/leanoj-checker";
+
+    $toolchain = $env['LEAN_TOOLCHAIN'];
+    $checkerPath = $env['CHECKER_PATH'];
     $leanPath = "/checker/.lake/packages/batteries/.lake/build/lib/lean:/checker/.lake/packages/Qq/.lake/build/lib/lean:/checker/.lake/packages/aesop/.lake/build/lib/lean:/checker/.lake/packages/proofwidgets/.lake/build/lib/lean:/checker/.lake/packages/importGraph/.lake/build/lib/lean:/checker/.lake/packages/mathlib/.lake/build/lib/lean:/checker/.lake/packages/plausible/.lake/build/lib/lean:/checker/.lake/packages/LeanSearchClient/.lake/build/lib/lean:";
 
     $runCmd = [
