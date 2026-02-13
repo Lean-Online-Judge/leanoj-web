@@ -10,8 +10,20 @@ $env = parse_ini_file($env_file, false, INI_SCANNER_RAW);
 if ($env === false || empty($env['DB_PATH'])) {
     die('DB_PATH not configured in .env');
 }
+if (empty($env['CHECKER_FILES'])) {
+    die('CHECKER_FILES not configured in .env');
+}
+if (empty($env['LEAN_TOOLCHAIN'])) {
+    die('LEAN_TOOLCHAIN not configured in .env');
+}
+if (empty($env['CHECKER_PATH'])) {
+    die('CHECKER_PATH not configured in .env');
+}
 
 $db_path = $env['DB_PATH'];
+$checkerFiles = $env['CHECKER_FILES'];
+$toolchain = $env['LEAN_TOOLCHAIN'];
+$checkerPath = $env['CHECKER_PATH'];
 
 $db = new PDO("sqlite:$db_path");
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -28,7 +40,6 @@ while (true) {
     echo "Processing submission #{$s["id"]}\n";
 
     $boxId = 0;
-    $checkerFiles = $env['CHECKER_FILES'];
     $metaFile = __DIR__ . "/meta.txt";
     $checkerBinary = ".lake/build/bin/check";
 
@@ -45,8 +56,6 @@ while (true) {
 
     $boxPath = trim(shell_exec("isolate --box-id=$boxId --cg --init"));
 
-    $toolchain = $env['LEAN_TOOLCHAIN'];
-    $checkerPath = $env['CHECKER_PATH'];
     $leanPath = "/checker/.lake/packages/batteries/.lake/build/lib/lean:/checker/.lake/packages/Qq/.lake/build/lib/lean:/checker/.lake/packages/aesop/.lake/build/lib/lean:/checker/.lake/packages/proofwidgets/.lake/build/lib/lean:/checker/.lake/packages/importGraph/.lake/build/lib/lean:/checker/.lake/packages/mathlib/.lake/build/lib/lean:/checker/.lake/packages/plausible/.lake/build/lib/lean:/checker/.lake/packages/LeanSearchClient/.lake/build/lib/lean:";
 
     $runCmd = [
