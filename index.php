@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   elseif ($action === "submit_solution" && isset($_SESSION['user_id'])) {
     $problem_id = $_POST['problem_id'] ?? 0;
     $source_code = "";
-    if (isset($_FILES['source_file'])) {
+    if (isset($_FILES['template_file']) && $_FILES['template_file']['error'] === UPLOAD_ERR_OK) {
       $err = validate_file('source_file');
       if ($err) {
         redirect("view_problem", ["id" => $problem_id], $err);
