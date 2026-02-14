@@ -15,4 +15,4 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd ${{ secrets.VPS_PATH }} && git pull && cp -r index.php templates /var/www/html"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd ${{ secrets.VPS_PATH }} && git pull && cp -r index.php templates ${{ secrets.VPS_INDEX }} && cp worker.php ${{ secrets.VPS_WORKER }} && sudo systemctl restart leanoj-worker"
