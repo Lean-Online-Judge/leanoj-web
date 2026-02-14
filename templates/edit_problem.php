@@ -2,7 +2,7 @@
 <form method="POST" action="index.php?action=edit_problem" enctype="multipart/form-data">
   <input type="hidden" name="id" value="<?= $problem['id'] ?>">
   <h3>Title</h3>
-  <input type="text" name="title" value=<?= $problem['title'] ?> required>
+  <input type="text" name="title" value="<?= $problem['title'] ?>" required>
   <h3>Statement</h3>
   <textarea rows="4" name="statement" required><?= $problem['statement'] ?></textarea>
   <h3>Template</h3>
