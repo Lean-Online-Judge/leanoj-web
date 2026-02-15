@@ -1,6 +1,6 @@
 <h2>
   <?= htmlspecialchars($problem['title']) ?>
-  <?php if (($_SESSION['username'] ?? '') === 'admin'): ?>
+  <?php if ($is_admin): ?>
     <span class="admin-link"><a href="index.php?action=edit_problem&id=<?= $problem['id'] ?>">[Edit]</a></span>
   <?php endif; ?>
 </h2>

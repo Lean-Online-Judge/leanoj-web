@@ -153,7 +153,7 @@
   <nav>
     <a href="index.php">Problems</a>
     <a href="index.php?action=scoreboard">Scoreboard</a>
-    <a href="index.php?action=answer_bank">Answer Bank</a>
+    <a href="index.php?action=view_answers">Answer Bank</a>
     <a href="index.php?action=info">What is this?</a>
     <?php if (isset($_SESSION['user_id'])): ?>
       <span>

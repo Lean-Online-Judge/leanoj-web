@@ -19,6 +19,7 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
 $action = $_GET['action'] ?? "view_problems";
+$is_admin = ($_SESSION['username'] ?? '') === 'admin';
 
 function validate_file($file_key, $max_size = 262144) {
     if (empty($_FILES[$file_key]['tmp_name']) || $_FILES[$file_key]['error'] !== UPLOAD_ERR_OK) return "Upload failed";
@@ -35,6 +36,27 @@ function redirect($action = "view_problems", $params = [], $message = "") {
   }
   header("Location: index.php?" . http_build_query($query));
   exit;
+}
+
+function separate_imports($content) {
+  $lines = explode("\n", str_replace("\r", "", $content));
+  $imports = [];
+  $body = [];
+  foreach ($lines as $line) {
+    $trimmed = trim($line);
+    if ($trimmed === "") {
+      continue;
+    }
+    if (strpos($trimmed, "import") === 0) {
+      $imports[] = $line;
+    } else {
+      $body[] = $line;
+    }
+  }
+  return [
+    "imports" => implode("\n", $imports),
+    "body" => implode("\n", $body)
+  ];
 }
 
 if ($action === "logout") {
@@ -130,33 +152,34 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("xyzzy");
   }
 
-  elseif ($action === "add_problem" && $_SESSION['username'] === 'admin') {
+  elseif ($action === "add_problem" && $is_admin) {
     $title = trim($_POST['title']);
     $statement = trim($_POST['statement']);
     $template = trim($_POST['template_text']);
-    $answer = trim($_POST['answer_text']);
+    $def = trim($_POST['answer']);
+    $answer = null;
     if (empty($title) || empty($statement)) {
-      redirect("edit_problem", ["id" => $id], "Fill in required fields");
+      redirect("add_problem", [], "Fill in required fields");
     }
     if (isset($_FILES['template_file']) && $_FILES['template_file']['error'] === UPLOAD_ERR_OK) {
       $err = validate_file('template_file');
       if ($err) {
-        redirect("edit_problem", ["id" => $id], $err);
+        redirect("add_problem", [], $err);
       }
       $template = trim(file_get_contents($_FILES['template_file']['tmp_name']));
     }
     if (empty($template)) {
-      redirect("edit_problem", ["id" => $id], "Fill in required fields");
+      redirect("add_problem", [], "Fill in required fields");
     }
-    if (isset($_FILES['answer_file']) && $_FILES['answer_file']['error'] === UPLOAD_ERR_OK) {
-      $err = validate_file('answer_file');
-      if ($err) {
-        redirect("edit_problem", ["id" => $id], $err);
+    $def = trim($_POST['answer']);
+    if (!empty($def)) {
+      $stmt = $db->prepare("SELECT id from answers WHERE def = :def");
+      $stmt->bindValue(":def", $def);
+      $stmt->execute();
+      $answer = $stmt->fetch();
+      if (!$answer) {
+        redirect("add_problem", [], "Answer not found");
       }
-      $answer = trim(file_get_contents($_FILES['answer_file']['tmp_name']));
-    }
-    if (empty($answer)) {
-      $answer = null;
     }
     $stmt = $db->prepare("INSERT INTO problems (title, statement, template, answer) VALUES (:title, :statement, :template, :answer)");
     $stmt->bindValue(":title", $title);
@@ -167,13 +190,13 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_problem", ["id" => $db->lastInsertId()]);
   }
 
-  elseif ($action === "edit_problem" && $_SESSION['username'] === 'admin') {
+  elseif ($action === "edit_problem" && $is_admin) {
     $id = $_POST['id'];
     $title = trim($_POST['title']);
     $statement = trim($_POST['statement']);
     $template = trim($_POST['template_text']);
-    $answer = trim($_POST['answer_text']);
-    if (empty($title) || empty($statement)) {
+    $answer = null;
+  if (empty($title) || empty($statement)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
     if (isset($_FILES['template_file']) && $_FILES['template_file']['error'] === UPLOAD_ERR_OK) {
@@ -186,15 +209,15 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($template)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
-    if (isset($_FILES['answer_file']) && $_FILES['answer_file']['error'] === UPLOAD_ERR_OK) {
-      $err = validate_file('answer_file');
-      if ($err) {
-        redirect("edit_problem", ["id" => $id], $err);
+    $def = trim($_POST['answer']);
+    if (!empty($def)) {
+      $stmt = $db->prepare("SELECT id from answers WHERE def = :def");
+      $stmt->bindValue(":def", $def);
+      $stmt->execute();
+      $answer = $stmt->fetchColumn();
+      if (!$answer) {
+        redirect("edit_problem", ["id" => $id], "Answer not found");
       }
-      $answer = trim(file_get_contents($_FILES['answer_file']['tmp_name']));
-    }
-    if (empty($answer)) {
-      $answer = null;
     }
     $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement, template = :template, answer = :answer WHERE id = :id");
     $stmt->bindValue(":id", $id);
@@ -206,7 +229,27 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_problem", ["id" => $id]);
   }
 
-  elseif ($action === "rejudge" && $_SESSION['username'] === "admin") {
+  elseif ($action === "add_answer" && $is_admin) {
+    $answer = trim($_POST['answer_text']);
+    if (isset($_FILES['answer_file']) && $_FILES['answer_file']['error'] === UPLOAD_ERR_OK) {
+      $err = validate_file('answer_file');
+      if ($err) {
+        redirect("add_answer", [], $err);
+      }
+      $answer = trim(file_get_contents($_FILES['answer_file']['answer_file']));
+    }
+    if (empty($answer)) {
+      redirect("add_anwer", [], "Fill in required fields");
+    }
+    $sep = separate_imports($answer);
+    $stmt = $db->prepare("INSERT INTO answers (imports, def) VALUES (:imports, :def)");
+    $stmt->bindValue(":imports", $answer['imports']);
+    $stmt->bindValue(":def", $answer['body']);
+    $stmt->execute();
+    redirect("view_answers");
+  }
+
+  elseif ($action === "rejudge" && $is_admin) {
     $stmt = $db->prepare("UPDATE submissions SET status = 'PENDING' WHERE id = :id");
     $stmt->bindValue(":id", $_POST['id']);
     $stmt->execute();
@@ -339,36 +382,35 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       $stmt->execute();
       $is_solved = (bool)$stmt->fetchColumn();
       $is_owner = $submission['user'] === $_SESSION['user_id'];
-      $is_admin = ($_SESSION['username'] ?? '') === 'admin';
       $is_xyzzy = ($submission['title'] === 'xyzzy');
       $show_source = $is_admin || $is_owner || ($is_solved && !$is_xyzzy);
     }
     include "templates/view_submission.php";
   }
 
-  elseif ($action === "answer_bank") {
+  elseif ($action === "view_answers") {
     $per_page = 25;
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
     $offset = ($page - 1) * $per_page;
-    $total_stmt = $db->query("SELECT COUNT(*) FROM problems WHERE answer IS NOT NULL");
+    $total_stmt = $db->query("SELECT COUNT(*) FROM answers");
     $total_problems = $total_stmt->fetchColumn();
     $total_pages = ceil($total_problems / $per_page);
 
-    $stmt = $db->prepare("SELECT answer FROM problems where answer IS NOT NULL LIMIT :limit OFFSET :offset");
+    $stmt = $db->prepare("SELECT * FROM answers LIMIT :limit OFFSET :offset");
     $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();
     $answers = $stmt->fetchAll();
-    include "templates/answer_bank.php";
+    include "templates/view_answers.php";
   }
 
-  elseif ($action === "add_problem" && $_SESSION['username'] === "admin") {
+  elseif ($action === "add_problem" && $is_admin) {
     include "templates/add_problem.php";
   }
 
-  elseif ($action === "edit_problem" && $_SESSION['username'] === "admin") {
+  elseif ($action === "edit_problem" && $is_admin) {
     $id = $_GET['id'] ?? 0;
-    $stmt = $db->prepare("SELECT * FROM problems WHERE id = :id");
+    $stmt = $db->prepare("SELECT p.*, a.def FROM problems p LEFT JOIN answers a ON p.answer = a.id WHERE p.id = :id");
     $stmt->bindValue(":id", $id);
     $stmt->execute();
     $problem = $stmt->fetch();
@@ -376,6 +418,10 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       redirect("view_problems", [], "Not found");
     }
     include "templates/edit_problem.php";
+  }
+
+  elseif ($action === "add_answer" && $is_admin) {
+    include "templates/add_answer.php";
   }
   include "templates/footer.php";
 }

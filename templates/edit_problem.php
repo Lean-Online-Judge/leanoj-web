@@ -10,10 +10,6 @@
   <p>Or upload as a file (.lean)</p>
   <input type="file" name="template_file" accept=".lean">
   <h3>Answer</h3>
-  <textarea name="answer_text" style="white-space: nowrap" rows="1"><?= $problem['answer'] ?></textarea>
-  <p>Or upload as a file (.lean)</p>
-  <input type="file" name="answer_file" accept=".lean">
-  <div style="width: 100%; display: flex; justify-content: flex-end">
-    <input type="submit" value="Save Changes">
-  </div>
+  <input type="text" name="answer" value="<?= $problem['def'] ?>">
+  <input style="float: right" type="submit" value="Save Changes">
 </form>

@@ -1,9 +1,0 @@
-time:6.382
-time-wall:6.400
-max-rss:1811912
-csw-voluntary:1926
-csw-forced:352
-cg-mem:224624
-exitcode:49
-status:RE
-message:Exited with error status 49
