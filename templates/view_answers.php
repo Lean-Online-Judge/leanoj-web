@@ -12,7 +12,7 @@
 <?php foreach ($answers as $a): ?>
   <div class="code-container">
     <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
-    <pre><?= htmlspecialchars($a['def']) ?></pre>
+    <pre><?= htmlspecialchars($a['body']) ?></pre>
   </div>
 <?php endforeach; ?>
 

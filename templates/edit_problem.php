@@ -12,6 +12,6 @@
   <p>Or upload as a file (.lean)</p>
   <input type="file" name="template_file" accept=".lean">
   <h3>Answer</h3>
-  <input type="text" name="answer" value="<?= $problem['def'] ?>">
+  <input type="text" name="answer" value="<?= $problem['body'] ?>">
   <input style="float: right" type="submit" value="Save Changes">
 </form>
