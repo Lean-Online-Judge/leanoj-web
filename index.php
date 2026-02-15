@@ -240,12 +240,12 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       if ($err) {
         redirect("add_answer", [], $err);
       }
-      $answer = trim(file_get_contents($_FILES['answer_file']['answer_file']));
+      $answer = trim(file_get_contents($_FILES['answer_file']['tmp_name']));
     }
     if (empty($answer)) {
-      redirect("add_anwer", [], "Fill in required fields");
+      redirect("add_answer", [], "Fill in required fields");
     }
-    $sep = separate_imports($answer);
+    $answer = separate_imports($answer);
     $stmt = $db->prepare("INSERT INTO answers (imports, body) VALUES (:imports, :body)");
     $stmt->bindValue(":imports", $answer['imports']);
     $stmt->bindValue(":body", $answer['body']);
