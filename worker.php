@@ -32,10 +32,9 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 echo "Worker started...\n";
 
 while (true) {
-  $stmt = $db->prepare("SELECT s.*, p.template, p.title, p.answer FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PENDING' LIMIT 1");
+  $stmt = $db->prepare("SELECT s.*, p.template, p.title, p.answer, a.imports, a.def FROM submissions s JOIN problems p ON s.problem = p.id LEFT JOIN answers a ON p.answer = a.id WHERE s.status = 'PENDING' LIMIT 1");
   $stmt->execute();
   $s = $stmt->fetch();
-
   if ($s) {
     echo "Processing submission #{$s["id"]}\n";
 
@@ -50,7 +49,7 @@ while (true) {
       file_put_contents($checkerFiles . "/template.lean", $s["template"]);
     }
     if (isset($s['answer'])) {
-      file_put_contents($checkerFiles . "/answer.lean", $s["answer"]);
+      file_put_contents($checkerFiles . "/answer.lean", $s["imports"] . "\n" . $s["def"]);
       $checkerBinary = ".lake/build/bin/check_with_answer";
     }
 
@@ -89,7 +88,7 @@ while (true) {
     $metaStatus = $meta["status"] ?? "OK";
 
     shell_exec("isolate --box-id=$boxId --cg --cleanup");
-    /* if (file_exists($metaFile)) unlink($metaFile); */
+    if (file_exists($metaFile)) unlink($metaFile);
 
     $options = [
       42 => "PASSED",

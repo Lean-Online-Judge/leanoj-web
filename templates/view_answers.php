@@ -1,11 +1,18 @@
-<h2>Answer Bank</h2>
+<h2>
+  Answer Bank
+  <?php if ($is_admin): ?>
+    <span class="admin-link"><a href="index.php?action=add_answer">[Add]</a></span>
+  <?php endif; ?>
+</h2>
+
 <?php if (!$answers): ?>
   <p>None yet.</p>
 <?php endif; ?>
+
 <?php foreach ($answers as $a): ?>
   <div class="code-container">
     <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
-    <pre><?= htmlspecialchars($a['answer']) ?></pre>
+    <pre><?= htmlspecialchars($a['body']) ?></pre>
   </div>
 <?php endforeach; ?>
 

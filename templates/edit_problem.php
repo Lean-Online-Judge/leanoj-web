@@ -5,15 +5,13 @@
   <input type="text" name="title" value="<?= $problem['title'] ?>" required>
   <h3>Statement</h3>
   <textarea rows="4" name="statement" required><?= $problem['statement'] ?></textarea>
+  <h3>Note</h3>
+  <textarea rows="2" name="note"><?= $problem['note'] ?></textarea>
   <h3>Template</h3>
   <textarea name="template_text" style="white-space: nowrap" rows="4"><?= $problem['template'] ?></textarea>
   <p>Or upload as a file (.lean)</p>
   <input type="file" name="template_file" accept=".lean">
   <h3>Answer</h3>
-  <textarea name="answer_text" style="white-space: nowrap" rows="1"><?= $problem['answer'] ?></textarea>
-  <p>Or upload as a file (.lean)</p>
-  <input type="file" name="answer_file" accept=".lean">
-  <div style="width: 100%; display: flex; justify-content: flex-end">
-    <input type="submit" value="Save Changes">
-  </div>
+  <input type="text" name="answer" value="<?= $problem['body'] ?>">
+  <input style="float: right" type="submit" value="Save Changes">
 </form>
