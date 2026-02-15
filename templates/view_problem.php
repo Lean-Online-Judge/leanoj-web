@@ -5,9 +5,9 @@
   <?php endif; ?>
 </h2>
 <p><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
-<p style="font-size: 0.9em">
-  <em>Replace </em><code>sorry</code><em> in the template below with your solution. The Mathlib version currently used is v4.27.0.</em>
-</p>
+<?php if ($problem['note']): ?>
+  <p style="font-size: 0.9em"><em><?= $problem['note'] ?></em></p>
+<?php endif; ?>
 <div class="code-container">
   <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
   <pre><?= htmlspecialchars($problem['template']) ?></pre>
