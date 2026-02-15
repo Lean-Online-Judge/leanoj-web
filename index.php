@@ -155,8 +155,9 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   elseif ($action === "add_problem" && $is_admin) {
     $title = trim($_POST['title']);
     $statement = trim($_POST['statement']);
+    $note = trim($_POST['note']) ?? null;
     $template = trim($_POST['template_text']);
-    $def = trim($_POST['answer']);
+    $body = trim($_POST['answer']);
     $answer = null;
     if (empty($title) || empty($statement)) {
       redirect("add_problem", [], "Fill in required fields");
@@ -171,19 +172,20 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($template)) {
       redirect("add_problem", [], "Fill in required fields");
     }
-    $def = trim($_POST['answer']);
-    if (!empty($def)) {
-      $stmt = $db->prepare("SELECT id from answers WHERE def = :def");
-      $stmt->bindValue(":def", $def);
+    $body = trim($_POST['answer']);
+    if (!empty($body)) {
+      $stmt = $db->prepare("SELECT id from answers WHERE body = :body");
+      $stmt->bindValue(":body", $body);
       $stmt->execute();
-      $answer = $stmt->fetch();
+      $answer = $stmt->fetchColumn();
       if (!$answer) {
         redirect("add_problem", [], "Answer not found");
       }
     }
-    $stmt = $db->prepare("INSERT INTO problems (title, statement, template, answer) VALUES (:title, :statement, :template, :answer)");
+    $stmt = $db->prepare("INSERT INTO problems (title, statement, note, template, answer) VALUES (:title, :statement, :note, :template, :answer)");
     $stmt->bindValue(":title", $title);
     $stmt->bindValue(":statement", $statement);
+    $stmt->bindValue(":note", $note);
     $stmt->bindValue(":template", $template);
     $stmt->bindValue(":answer", $answer);
     $stmt->execute();
@@ -195,6 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $title = trim($_POST['title']);
     $statement = trim($_POST['statement']);
     $template = trim($_POST['template_text']);
+    $note = trim($_POST['note']) ?? null;
     $answer = null;
   if (empty($title) || empty($statement)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
@@ -209,20 +212,21 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($template)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
-    $def = trim($_POST['answer']);
-    if (!empty($def)) {
-      $stmt = $db->prepare("SELECT id from answers WHERE def = :def");
-      $stmt->bindValue(":def", $def);
+    $body = trim($_POST['answer']);
+    if (!empty($body)) {
+      $stmt = $db->prepare("SELECT id from answers WHERE body = :body");
+      $stmt->bindValue(":body", $body);
       $stmt->execute();
       $answer = $stmt->fetchColumn();
       if (!$answer) {
         redirect("edit_problem", ["id" => $id], "Answer not found");
       }
     }
-    $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement, template = :template, answer = :answer WHERE id = :id");
+    $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement, note = :note, template = :template, answer = :answer WHERE id = :id");
     $stmt->bindValue(":id", $id);
     $stmt->bindValue(":title", $title);
     $stmt->bindValue(":statement", $statement);
+    $stmt->bindValue(":note", $note);
     $stmt->bindValue(":template", $template);
     $stmt->bindValue(":answer", $answer);
     $stmt->execute();
@@ -242,9 +246,9 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       redirect("add_anwer", [], "Fill in required fields");
     }
     $sep = separate_imports($answer);
-    $stmt = $db->prepare("INSERT INTO answers (imports, def) VALUES (:imports, :def)");
+    $stmt = $db->prepare("INSERT INTO answers (imports, body) VALUES (:imports, :body)");
     $stmt->bindValue(":imports", $answer['imports']);
-    $stmt->bindValue(":def", $answer['body']);
+    $stmt->bindValue(":body", $answer['body']);
     $stmt->execute();
     redirect("view_answers");
   }
@@ -410,7 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
 
   elseif ($action === "edit_problem" && $is_admin) {
     $id = $_GET['id'] ?? 0;
-    $stmt = $db->prepare("SELECT p.*, a.def FROM problems p LEFT JOIN answers a ON p.answer = a.id WHERE p.id = :id");
+    $stmt = $db->prepare("SELECT p.*, a.body FROM problems p LEFT JOIN answers a ON p.answer = a.id WHERE p.id = :id");
     $stmt->bindValue(":id", $id);
     $stmt->execute();
     $problem = $stmt->fetch();
