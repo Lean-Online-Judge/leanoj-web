@@ -4,6 +4,7 @@
   <input type="text" name="title" required>
   <h3>Start & End (UTC)</h3>
   <input type="datetime-local" name="start" required>
+  &nbsp;
   <input type="datetime-local" name="end" required>
   <input style="float: right" type="submit" value="Add Contest">
 </form>
