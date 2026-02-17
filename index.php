@@ -19,7 +19,8 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
 $action = $_GET['action'] ?? "view_problems";
-$is_admin = ($_SESSION['username'] ?? '') === 'admin';
+$is_admin = ($_SESSION['username'] ?? "") === 'admin';
+$user = $_SESSION['user_id'] ?? null;
 
 function validate_file($file_key, $max_size = 262144) {
     if (empty($_FILES[$file_key]['tmp_name']) || $_FILES[$file_key]['error'] !== UPLOAD_ERR_OK) return "Upload failed";
@@ -109,18 +110,29 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("login", [], "Invalid credentials");
   }
 
-  elseif ($action === "submit_solution" && isset($_SESSION['user_id'])) {
+  elseif ($action === "submit_solution" && $user) {
     $problem_id = $_POST['problem_id'] ?? 0;
-    $source_code = "";
-    if (isset($_FILES['template_file']) && $_FILES['template_file']['error'] === UPLOAD_ERR_OK) {
+    $stmt = $db->prepare("SELECT p.*, c.start, c.end FROM problems p LEFT JOIN contests c ON p.contest = c.id WHERE p.id = :id");
+    $stmt->bindValue(":id", $problem_id);
+    $stmt->execute();
+    $problem = $stmt->fetch();
+    if ($problem['contest']) {
+      $cur = strtotime(date('H:i:s'));
+      $start = strtotime($problem['start']);
+      $end = strtotime($problem['end']);
+      if ($cur < $start || $cur > $end) {
+        redirect("view_problem", ["id" => $problem_id], "Contest is inactive");
+      }
+    }
+    $source_code = trim($_POST['source_text']);
+    if (isset($_FILES['source_file']) && $_FILES['source_file']['error'] === UPLOAD_ERR_OK) {
       $err = validate_file('source_file');
       if ($err) {
         redirect("view_problem", ["id" => $problem_id], $err);
       }
       $source_code = file_get_contents($_FILES['source_file']['tmp_name']);
-    } elseif (!empty($_POST['source_text'])) {
-      $source_code = $_POST['source_text'];
-    } else {
+    }
+    if (empty($_POST['source_text'])) {
       redirect("view_problem", ["id" => $problem_id], "Solution can't be empty");
     }
     $stmt = $db->prepare("INSERT INTO submissions (problem, user, source, status) VALUES (:problem, :user, :source, :status)");
@@ -153,15 +165,12 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   }
 
   elseif ($action === "add_problem" && $is_admin) {
-    $title = trim($_POST['title']);
-    $statement = trim($_POST['statement']);
-    $note = trim($_POST['note']) ?? null;
-    $template = trim($_POST['template_text']);
-    $body = trim($_POST['answer']);
-    $answer = null;
-    if (empty($title) || empty($statement)) {
-      redirect("add_problem", [], "Fill in required fields");
-    }
+    $title = trim($_POST['title']) ?: null;
+    $statement = trim($_POST['statement']) ?: null;
+    $note = trim($_POST['note']) ?: null;
+    $template = trim($_POST['template_text']) ?: null;
+    $answer = trim($_POST['answer']) ?: null;
+    $contest = (int)$_POST['contest'] ?: null;
     if (isset($_FILES['template_file']) && $_FILES['template_file']['error'] === UPLOAD_ERR_OK) {
       $err = validate_file('template_file');
       if ($err) {
@@ -169,36 +178,46 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       }
       $template = trim(file_get_contents($_FILES['template_file']['tmp_name']));
     }
-    if (empty($template)) {
+    if (empty($title) || empty($statement) || empty($template)) {
       redirect("add_problem", [], "Fill in required fields");
     }
-    $body = trim($_POST['answer']);
-    if (!empty($body)) {
+    if ($answer) {
       $stmt = $db->prepare("SELECT id from answers WHERE body = :body");
-      $stmt->bindValue(":body", $body);
+      $stmt->bindValue(":body", $answer);
       $stmt->execute();
       $answer = $stmt->fetchColumn();
       if (!$answer) {
         redirect("add_problem", [], "Answer not found");
       }
     }
-    $stmt = $db->prepare("INSERT INTO problems (title, statement, note, template, answer) VALUES (:title, :statement, :note, :template, :answer)");
+    if ($contest) {
+      $stmt = $db->prepare("SELECT id from contests WHERE id = :id");
+      $stmt->bindValue(":id", $contest);
+      $stmt->execute();
+      $contest = $stmt->fetchColumn();
+      if (!$contest) {
+        redirect("add_problem", [], "Contest not found");
+      }
+    }
+    $stmt = $db->prepare("INSERT INTO problems (title, statement, note, template, answer, contest) VALUES (:title, :statement, :note, :template, :answer, :contest)");
     $stmt->bindValue(":title", $title);
     $stmt->bindValue(":statement", $statement);
     $stmt->bindValue(":note", $note);
     $stmt->bindValue(":template", $template);
     $stmt->bindValue(":answer", $answer);
+    $stmt->bindValue(":contest", $contest);
     $stmt->execute();
     redirect("view_problem", ["id" => $db->lastInsertId()]);
   }
 
   elseif ($action === "edit_problem" && $is_admin) {
-    $id = $_POST['id'];
-    $title = trim($_POST['title']);
-    $statement = trim($_POST['statement']);
-    $template = trim($_POST['template_text']);
-    $note = trim($_POST['note']) ?? null;
-    $answer = null;
+    $id = (int)$_POST['id'] ?: null;
+    $title = trim($_POST['title']) ?: null;
+    $statement = trim($_POST['statement']) ?: null;
+    $template = trim($_POST['template_text'])  ?: null;
+    $note = trim($_POST['note']) ?: null;
+    $answer = trim($_POST['answer']) ?: null;
+    $contest = (int)($_POST['contest']) ?: null;
   if (empty($title) || empty($statement)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
@@ -212,23 +231,32 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($template)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
-    $body = trim($_POST['answer']);
-    if (!empty($body)) {
+    if ($answer) {
       $stmt = $db->prepare("SELECT id from answers WHERE body = :body");
-      $stmt->bindValue(":body", $body);
+      $stmt->bindValue(":body", $answer);
       $stmt->execute();
       $answer = $stmt->fetchColumn();
       if (!$answer) {
         redirect("edit_problem", ["id" => $id], "Answer not found");
       }
     }
-    $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement, note = :note, template = :template, answer = :answer WHERE id = :id");
+    if ($contest) {
+      $stmt = $db->prepare("SELECT id from contests WHERE id = :id");
+      $stmt->bindValue(":id", $contest);
+      $stmt->execute();
+      $contest = $stmt->fetchColumn();
+      if (!$contest) {
+        redirect("edit_problem", ["id" => $id], "Contest not found");
+      }
+    }
+    $stmt = $db->prepare("UPDATE problems SET title = :title, statement = :statement, note = :note, template = :template, answer = :answer, contest = :contest WHERE id = :id");
     $stmt->bindValue(":id", $id);
     $stmt->bindValue(":title", $title);
     $stmt->bindValue(":statement", $statement);
     $stmt->bindValue(":note", $note);
     $stmt->bindValue(":template", $template);
     $stmt->bindValue(":answer", $answer);
+    $stmt->bindValue(":contest", $contest);
     $stmt->execute();
     redirect("view_problem", ["id" => $id]);
   }
@@ -251,6 +279,38 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $stmt->bindValue(":body", $answer['body']);
     $stmt->execute();
     redirect("view_answers");
+  }
+
+  elseif ($action === "add_contest" && $is_admin) {
+    $title = trim($_POST['title']) ?: null;
+    $start = (new DateTime($_POST['start']))->format('Y-m-d H:i');
+    $end = (new DateTime($_POST['end']))->format('Y-m-d H:i');
+    if (empty($title) || empty($start) || empty($end)) {
+      redirect("add_contest", [], "Fill in required fields");
+    }
+    $stmt = $db->prepare("INSERT INTO contests (title, start, end) VALUES (:title, :start, :end)");
+    $stmt->bindValue(":title", $title);
+    $stmt->bindValue(":start", $start);
+    $stmt->bindValue(":end", $end);
+    $stmt->execute();
+    redirect("view_contest", ["id" => $db->lastInsertId()]);
+  }
+
+  elseif ($action === "edit_contest" && $is_admin) {
+    $id = (int)$_POST['id'] ?: null;
+    $title = trim($_POST['title']) ?: null;
+    $start = (new DateTime($_POST['start']))->format('Y-m-d H:i');
+    $end = (new DateTime($_POST['end']))->format('Y-m-d H:i');
+    if (empty($title) || empty($start) || empty($end)) {
+      redirect("edit_contest", ["id" => $id], "Fill in required fields");
+    }
+    $stmt = $db->prepare("UPDATE contests SET title = :title, start = :start, end = :end where id = :id");
+    $stmt->bindValue(":id", $id);
+    $stmt->bindValue(":title", $title);
+    $stmt->bindValue(":start", $start);
+    $stmt->bindValue(":end", $end);
+    $stmt->execute();
+    redirect("view_contest", ["id" => $id]);
   }
 
   elseif ($action === "rejudge" && $is_admin) {
@@ -283,10 +343,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       (SELECT COUNT(DISTINCT user) FROM submissions WHERE problem = p.id AND status = 'PASSED' AND p.title != 'xyzzy') as solves,
       EXISTS(SELECT 1 FROM submissions WHERE problem = p.id AND user = :user AND status = 'PASSED' AND p.title != 'xyzzy') as is_solved
       FROM problems p
+      WHERE p.contest IS NULL
       ORDER BY p.id DESC
       LIMIT :limit OFFSET :offset";
     $stmt = $db->prepare($sql);
-    $stmt->bindValue(":user", $_SESSION['user_id'] ?? null);
+    $stmt->bindValue(":user", $user);
     $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();
@@ -408,6 +469,28 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     include "templates/view_answers.php";
   }
 
+  elseif ($action === "view_contests") {
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+    $total_stmt = $db->query("SELECT COUNT(*) FROM contests");
+    $total_problems = $total_stmt->fetchColumn();
+    $total_pages = ceil($total_problems / $per_page);
+
+    $stmt = $db->prepare("SELECT * FROM contests ORDER BY id DESC LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $contests = $stmt->fetchAll();
+
+    $stmt = $db->prepare("SELECT * FROM contests ORDER BY id DESC LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
+
+    include "templates/view_contests.php";
+  }
+
   elseif ($action === "add_problem" && $is_admin) {
     include "templates/add_problem.php";
   }
@@ -427,6 +510,67 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   elseif ($action === "add_answer" && $is_admin) {
     include "templates/add_answer.php";
   }
+
+  elseif ($action === "add_contest" && $is_admin) {
+    include "templates/add_contest.php";
+  }
+
+  elseif ($action === "edit_contest" && $is_admin) {
+    $id = (int)$_GET['id'] ?? 0;
+    $stmt = $db->prepare("SELECT * FROM contests WHERE id = :id");
+    $stmt->bindValue(":id", $id);
+    $stmt->execute();
+    $contest = $stmt->fetch();
+    if (!$contest) {
+      redirect("view_contests", [], "Not found");
+    }
+    include "templates/edit_contest.php";
+  }
+
+  elseif ($action === "view_contest") {
+    $id = (int)$_GET['id'] ?: null;
+    $stmt = $db->prepare("SELECT * FROM contests where id = :id");
+    $stmt->bindValue(":id", $id);
+    $stmt->execute();
+    $contest = $stmt->fetch();
+    if (!$contest) {
+      redirect("view_contests", [], "Not found");
+    }
+    $stmt = $db->prepare("SELECT p.*, (SELECT COUNT(DISTINCT user) FROM submissions WHERE problem = p.id AND status = 'PASSED') as solves, EXISTS(SELECT 1 FROM submissions WHERE problem = p.id AND user = :user AND status = 'PASSED') as is_solved FROM problems p WHERE p.contest = :id");
+    $stmt->bindValue(":user", $user);
+    $stmt->bindValue(":id", $id);
+    $stmt->execute();
+    $problems = $stmt->fetchAll();
+    include "templates/view_contest.php";
+  }
+
+  elseif ($action === "results") {
+    $id = (int)$_GET['id'] ?: null;
+    $per_page = 25;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $per_page;
+    $stmt = $db->prepare("SELECT COUNT(DISTINCT s.user) FROM submissions s JOIN problems p ON s.problem = p.id WHERE s.status = 'PASSED' AND p.contest = :id");
+    $stmt->bindValue(":id", $id);
+    $stmt->execute();
+    $total_users = $stmt->fetchColumn();
+    $total_pages = ceil($total_users / $per_page);
+    $sql = "SELECT u.username, COUNT(DISTINCT s.problem) as solved
+      FROM users u
+      LEFT JOIN submissions s ON u.id = s.user
+      LEFT JOIN problems p ON s.problem = p.id
+      WHERE p.contest = :id AND s.status = 'PASSED'
+      GROUP BY u.id
+      ORDER BY solved DESC, u.id ASC
+      LIMIT :limit OFFSET :offset";
+    $stmt = $db->prepare($sql);
+    $stmt->bindValue(":id", $id);
+    $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    $results = $stmt->fetchAll();
+    include "templates/results.php";
+  }
+
   include "templates/footer.php";
 }
 ?>

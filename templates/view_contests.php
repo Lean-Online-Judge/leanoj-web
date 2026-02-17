@@ -1,34 +1,34 @@
 <h2>
-  Problems 
+  Contests 
   <?php if (($_SESSION['username'] ?? '') === 'admin'): ?>
-    <span class="admin-link"><a href="index.php?action=add_problem">[Add]</a></span>
+    <span class="admin-link"><a href="index.php?action=add_contest">[Add]</a></span>
   <?php endif; ?>
 </h2>
-<?php if ($problems): ?>
+<?php if ($contests): ?>
   <table>
     <thead>
       <tr>
         <th style="text-align: center">#</th>
         <th>Title</th>
-        <th>Solved</th>
+        <th>Start (UTC)</th>
+        <th>End (UTC)</th>
       </tr>
     </thead>
     <tbody>
-      <?php foreach ($problems as $p): ?>
+      <?php foreach ($contests as $c): ?>
         <tr>
-          <td><?= $p['id'] ?></td>
+          <td><?= $c['id'] ?></td>
           <td>
-            <?= $p['is_solved'] ? "🎉 " : "" ?>
-            <a href="index.php?action=view_problem&id=<?= (int)$p['id'] ?>">
-              <?= htmlspecialchars($p['title']) ?>
+            <a href="index.php?action=view_contest&id=<?= (int)$c['id'] ?>">
+              <?= htmlspecialchars($c['title']) ?>
             </a>
           </td>
-          <td><?= (int)$p['solves'] ?></td>
+          <td><?= $c['start'] ?></td>
+          <td><?= $c['end'] ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
   </table>
-
   <div class="pagination">
     <?php if ($page > 1): ?>
       <a href="index.php?action=view_problems&page=<?= $page - 1 ?>">&#9664 prev.</a>

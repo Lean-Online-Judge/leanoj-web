@@ -69,7 +69,8 @@
     input[name="repeat-password"] {
       margin-bottom: 18px;
     }
-    input[name="title"] {
+    input[name="title"],
+    input[name="answer"] {
       width: 100%;
       box-sizing: border-box;
     }
@@ -151,10 +152,11 @@
 <div class="main-container">
   <a href="index.php" class="logo">Lean Online Judge</a>
   <nav>
-    <a href="index.php">Problems</a>
-    <a href="index.php?action=scoreboard">Scoreboard</a>
-    <a href="index.php?action=view_answers">Answer Bank</a>
     <a href="index.php?action=info">What is this?</a>
+    <a href="index.php">Problems</a>
+    <a href="index.php?action=view_contests">Contests</a>
+    <a href="index.php?action=view_answers">Answer Bank</a>
+    <a href="index.php?action=scoreboard">Scoreboard</a>
     <?php if (isset($_SESSION['user_id'])): ?>
       <span>
         <strong><?= htmlspecialchars($_SESSION['username']) ?></strong> |
