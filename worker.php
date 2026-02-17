@@ -32,7 +32,7 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 echo "Worker started...\n";
 
 while (true) {
-  $stmt = $db->prepare("SELECT s.*, p.template, p.title, p.answer, a.imports, a.def FROM submissions s JOIN problems p ON s.problem = p.id LEFT JOIN answers a ON p.answer = a.id WHERE s.status = 'PENDING' LIMIT 1");
+  $stmt = $db->prepare("SELECT s.*, p.template, p.title, p.answer, a.imports, a.body FROM submissions s JOIN problems p ON s.problem = p.id LEFT JOIN answers a ON p.answer = a.id WHERE s.status = 'PENDING' LIMIT 1");
   $stmt->execute();
   $s = $stmt->fetch();
   if ($s) {
@@ -49,7 +49,7 @@ while (true) {
       file_put_contents($checkerFiles . "/template.lean", $s["template"]);
     }
     if (isset($s['answer'])) {
-      file_put_contents($checkerFiles . "/answer.lean", $s["imports"] . "\n" . $s["def"]);
+      file_put_contents($checkerFiles . "/answer.lean", $s["imports"] . "\n" . $s["body"]);
       $checkerBinary = ".lake/build/bin/check_with_answer";
     }
 

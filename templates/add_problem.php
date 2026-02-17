@@ -4,13 +4,15 @@
   <input type="text" name="title" required>
   <h3>Statement</h3>
   <textarea rows="4" name="statement" required></textarea>
-  <h3>Note</h3>
-  <textarea rows="2" name="note"><?= $problem['note'] ?></textarea>
   <h3>Template</h3>
   <textarea name="template_text" style="white-space: nowrap" rows="4"></textarea>
   <p>Or upload as a file (.lean):</p>
   <input type="file" name="template_file" accept=".lean">
   <h3>Answer</h3>
   <input type="text" name="answer">
-  <input style="float: right" type="submit" value="Save Changes">
+  <h3>Note</h3>
+  <textarea rows="2" name="note"><?= $problem['note'] ?></textarea>
+  <h3>Contest</h3>
+  <input type="number" name="contest">
+  <input style="float: right" type="submit" value="Add Problem">
 </form>
