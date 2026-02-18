@@ -6,7 +6,12 @@
 </h2>
 <?php if ($answers): ?>
   <?php foreach ($answers as $a): ?>
-    <div class="code-container">
+    <?php if ($is_admin): ?>
+      <span style="margin: -8px; position: absolute; z-index: 10; font-size: 0.7em" class="admin-link">
+        <a href="index.php?action=edit_answer&id=<?= $a['id']?>">[Edit]</a>
+      </span>
+    <?php endif; ?>
+    <div style="margin-bottom: 10px" class="code-container">
       <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
       <pre><?= htmlspecialchars($a['body']) ?></pre>
     </div>

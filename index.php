@@ -285,6 +285,32 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_answers");
   }
 
+  elseif ($action === "edit_answer" && $is_admin) {
+    $id = (int)$_POST['id'];
+    $answer_source = trim($_POST['answer_text'] ?? "");
+    if (!empty($_FILES['answer_file']['tmp_name'])) {
+      $err = validate_file('answer_file');
+      if ($err) {
+        redirect("edit_answer", ["id" => $id], $err);
+      }
+      $answer_source = trim(file_get_contents($_FILES['answer_file']['tmp_name']));
+    }
+    if (empty($answer_source)) {
+      redirect("edit_answer", ["id" => $id], "Fill in required fields");
+    }
+    $answer = separate_imports($answer_source);
+    $stmt = $db->prepare("
+      UPDATE answers
+      SET imports = :imports, body = :body
+      WHERE id = :id");
+    $stmt->execute([
+      ":imports" => $answer['imports'],
+      ":body" => $answer['body'],
+      ":id" => $id,
+    ]);
+    redirect("view_answers");
+  }
+
   elseif ($action === "add_contest" && $is_admin) {
     $title = trim($_POST['title'] ?? "");
     $start = $_POST['start'] ?? "";
@@ -396,7 +422,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
 
   elseif ($action === "view_problem") {
     $id = (int)$_GET['id'];
-    $stmt = $db->prepare("SELECT * FROM problems WHERE id = :id");
+    $stmt = $db->prepare("
+      SELECT p.*, c.start, c.end
+      FROM problems p
+      LEFT JOIN contests c on p.contest = c.id
+      WHERE p.id = :id");
     $stmt->execute([":id" => $id]);
     $problem = $stmt->fetch();
     if (!$problem) {
@@ -410,6 +440,16 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       ORDER BY s.id DESC LIMIT 10");
     $stmt->execute(["id" => $id]);
     $recent_submissions = $stmt->fetchAll();
+
+    $can_view = true;
+    $can_submit = true;
+    if ($problem['contest']) {
+      $cur = strtotime(date('H:i:s'));
+      $start = strtotime($problem['start']);
+      $end = strtotime($problem['end']);
+      $can_view = $is_admin || $cur >= $start;
+      $can_submit = $cur <= $end;
+    }
     include "templates/view_problem.php";
   }
 
@@ -530,6 +570,18 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     include "templates/add_answer.php";
   }
 
+  elseif ($action === "edit_answer" && $is_admin) {
+    $id = (int)$_GET['id'];
+    $stmt = $db->prepare(" SELECT * FROM answers WHERE id = :id");
+    $stmt->execute([":id" => $id]);
+    $answer = $stmt->fetch();
+    if (!$answer) {
+      redirect("view_answers", [], "Not found");
+    }
+    $answer_source = trim($answer['imports'] . "\n\n" . $answer['body']);
+    include "templates/edit_answer.php";
+  }
+
   elseif ($action === "add_contest" && $is_admin) {
     include "templates/add_contest.php";
   }
@@ -551,6 +603,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $stmt = $db->prepare("SELECT * FROM contests where id = :id");
     $stmt->execute([":id" => $id]);
     $contest = $stmt->fetch();
+
     if (!$contest) {
       redirect("view_contests", [], "Not found");
     }

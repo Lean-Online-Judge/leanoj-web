@@ -107,7 +107,6 @@
       padding: 10px;
       border: 1px solid var(--border);
       overflow-x: auto;
-      margin: 10px 0;
     }
     pre { 
       margin: 0; 
@@ -128,6 +127,7 @@
       margin-bottom: 20px;
     }
     .admin-link {
+      font-weight: bold;
       font-size: 0.6em;
     }
     .status-cell {
