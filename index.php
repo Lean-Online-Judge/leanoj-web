@@ -70,7 +70,7 @@ function check_can_submit($db, $problem_id) {
   $stmt->execute([":id" => $problem_id]);
   $problem = $stmt->fetch();
   if ($problem['contest']) {
-    $cur = strtotime(date('H:i:s'));
+    $cur = time();
     $start = strtotime($problem['start']);
     $end = strtotime($problem['end']);
     if ($cur < $start || $cur > $end) {
@@ -444,7 +444,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $can_view = true;
     $can_submit = true;
     if ($problem['contest']) {
-      $cur = strtotime(date('H:i:s'));
+      $cur = time();
       $start = strtotime($problem['start']);
       $end = strtotime($problem['end']);
       $can_view = $is_admin || $cur >= $start;
