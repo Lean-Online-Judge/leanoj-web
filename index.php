@@ -396,7 +396,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
 
   elseif ($action === "view_problem") {
     $id = (int)$_GET['id'];
-    $stmt = $db->prepare("SELECT * FROM problems WHERE id = :id");
+    $stmt = $db->prepare("
+      SELECT p.*, c.start, c.end
+      FROM problems p
+      LEFT JOIN contests c on p.contest = c.id
+      WHERE p.id = :id");
     $stmt->execute([":id" => $id]);
     $problem = $stmt->fetch();
     if (!$problem) {
@@ -410,6 +414,16 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       ORDER BY s.id DESC LIMIT 10");
     $stmt->execute(["id" => $id]);
     $recent_submissions = $stmt->fetchAll();
+
+    $can_view = true;
+    $can_submit = true;
+    if ($problem['contest']) {
+      $cur = strtotime(date('H:i:s'));
+      $start = strtotime($problem['start']);
+      $end = strtotime($problem['end']);
+      $can_view = $is_admin || $cur >= $start;
+      $can_submit = $cur <= $end;
+    }
     include "templates/view_problem.php";
   }
 
@@ -551,6 +565,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $stmt = $db->prepare("SELECT * FROM contests where id = :id");
     $stmt->execute([":id" => $id]);
     $contest = $stmt->fetch();
+
     if (!$contest) {
       redirect("view_contests", [], "Not found");
     }
