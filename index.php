@@ -285,6 +285,32 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     redirect("view_answers");
   }
 
+  elseif ($action === "edit_answer" && $is_admin) {
+    $id = (int)$_POST['id'];
+    $answer_source = trim($_POST['answer_text'] ?? "");
+    if (!empty($_FILES['answer_file']['tmp_name'])) {
+      $err = validate_file('answer_file');
+      if ($err) {
+        redirect("edit_answer", ["id" => $id], $err);
+      }
+      $answer_source = trim(file_get_contents($_FILES['answer_file']['tmp_name']));
+    }
+    if (empty($answer_source)) {
+      redirect("edit_answer", ["id" => $id], "Fill in required fields");
+    }
+    $answer = separate_imports($answer_source);
+    $stmt = $db->prepare("
+      UPDATE answers
+      SET imports = :imports, body = :body
+      WHERE id = :id");
+    $stmt->execute([
+      ":imports" => $answer['imports'],
+      ":body" => $answer['body'],
+      ":id" => $id,
+    ]);
+    redirect("view_answers");
+  }
+
   elseif ($action === "add_contest" && $is_admin) {
     $title = trim($_POST['title'] ?? "");
     $start = $_POST['start'] ?? "";
@@ -542,6 +568,18 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
 
   elseif ($action === "add_answer" && $is_admin) {
     include "templates/add_answer.php";
+  }
+
+  elseif ($action === "edit_answer" && $is_admin) {
+    $id = (int)$_GET['id'];
+    $stmt = $db->prepare(" SELECT * FROM answers WHERE id = :id");
+    $stmt->execute([":id" => $id]);
+    $answer = $stmt->fetch();
+    if (!$answer) {
+      redirect("view_answers", [], "Not found");
+    }
+    $answer_source = trim($answer['imports'] . "\n\n" . $answer['body']);
+    include "templates/edit_answer.php";
   }
 
   elseif ($action === "add_contest" && $is_admin) {
