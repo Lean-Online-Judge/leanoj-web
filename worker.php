@@ -1,6 +1,5 @@
 <?php
 
-// Load .env
 $env_file = __DIR__ . '/.env';
 if (!file_exists($env_file)) {
     die('Missing .env file');
