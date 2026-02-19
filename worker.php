@@ -47,7 +47,7 @@ while (true) {
     } else {
       file_put_contents($checkerFiles . "/template.lean", $s["template"]);
     }
-    if (isset($s['answer'])) {
+    if (isset($s['answer']) && (int)$s['problem'] >= 30) {
       file_put_contents($checkerFiles . "/answer.lean", $s["imports"] . "\n" . $s["body"]);
       $checkerBinary = ".lake/build/bin/check_with_answer";
     }
