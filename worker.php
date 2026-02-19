@@ -47,9 +47,13 @@ while (true) {
     } else {
       file_put_contents($checkerFiles . "/template.lean", $s["template"]);
     }
-    if (isset($s['answer']) && (int)$s['problem'] >= 30) {
-      file_put_contents($checkerFiles . "/answer.lean", $s["imports"] . "\n" . $s["body"]);
-      $checkerBinary = ".lake/build/bin/check_with_answer";
+    if ((int)$s['problem'] >= 30) {
+      if (isset($s['answer'])) {
+        file_put_contents($checkerFiles . "/answer.lean", $s["imports"] . "\n" . $s["body"]);
+        $checkerBinary = ".lake/build/bin/check_with_answer";
+      }
+    } else {
+      $checkerBinary = ".lake/build/bin/check_old";
     }
 
     $boxPath = trim(shell_exec("isolate --box-id=$boxId --cg --init"));
