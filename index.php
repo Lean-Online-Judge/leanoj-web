@@ -404,7 +404,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       SELECT u.username, COUNT(first_passes.problem) AS solved,
         MAX(first_passes.first_pass) AS last_first_pass
       FROM users u
-      JOIN (SELECT s.user, s.problem, MIN(s.id) AS first_pass
+      LEFT JOIN (SELECT s.user, s.problem, MIN(s.id) AS first_pass
         FROM submissions s
         JOIN problems p ON s.problem = p.id
         WHERE p.title != 'xyzzy' AND p.contest IS NULL AND s.status = 'PASSED'
