@@ -401,13 +401,17 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $total_users = $total_stmt->fetchColumn();
     $total_pages = ceil($total_users / $per_page);
     $stmt = $db->prepare("
-      SELECT u.username, COUNT(DISTINCT s.problem) as solved
+      SELECT u.username, COUNT(first_passes.problem) AS solved,
+        MAX(first_passes.first_pass) AS last_first_pass
       FROM users u
-      LEFT JOIN submissions s ON u.id = s.user
-        AND s.status = 'PASSED'
-        AND s.problem != (SELECT id FROM problems WHERE title = 'xyzzy' LIMIT 1)
+      JOIN (SELECT s.user, s.problem, MIN(s.id) AS first_pass
+        FROM submissions s
+        JOIN problems p ON s.problem = p.id
+        WHERE p.title != 'xyzzy' AND p.contest IS NULL AND s.status = 'PASSED'
+        GROUP BY s.user, s.problem
+        ) AS first_passes ON u.id = first_passes.user
       GROUP BY u.id
-      ORDER BY solved DESC, u.id ASC
+      ORDER BY solved DESC, last_first_pass ASC
       LIMIT :limit OFFSET :offset");
     $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
@@ -635,13 +639,17 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $total_pages = ceil($total_users / $per_page);
 
     $stmt = $db->prepare("
-      SELECT u.username, COUNT(DISTINCT s.problem) as solved
+      SELECT u.username, COUNT(first_passes.problem) AS solved,
+        MAX(first_passes.first_pass) AS last_first_pass
       FROM users u
-      LEFT JOIN submissions s ON u.id = s.user
-      LEFT JOIN problems p ON s.problem = p.id
-      WHERE p.contest = :id AND s.status = 'PASSED'
+      JOIN (SELECT s.user, s.problem, MIN(s.id) AS first_pass
+        FROM submissions s
+        JOIN problems p ON s.problem = p.id
+        WHERE p.contest = :id AND s.status = 'PASSED'
+        GROUP BY s.user, s.problem
+        ) AS first_passes ON u.id = first_passes.user
       GROUP BY u.id
-      ORDER BY solved DESC, u.id ASC
+      ORDER BY solved DESC, last_first_pass ASC
       LIMIT :limit OFFSET :offset");
     $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
