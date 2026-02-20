@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $statement = trim($_POST['statement'] ?? "");
     $note = trim($_POST['note'] ?? "") ?: null;
     $template = trim($_POST['template_text'] ?? "");
-    $answer_text = trim($_POST['answer'] ?? "");
+    $answer = (int)$_POST['answer'] ?: null;
     $contest = (int)$_POST['contest'] ?: null;
     if (!empty($_FILES['template_file']['tmp_name'])) {
       $err = validate_file('template_file');
@@ -174,19 +174,19 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($title) || empty($statement) || empty($template)) {
       redirect("add_problem", [], "Fill in required fields");
     }
-    if ($answer_text) {
-      $stmt = $db->prepare("SELECT id from answers WHERE body = :body");
-      $stmt->execute([":body" => $answer_text]);
-      $answer = $stmt->fetchColumn();
-      if (!$answer) {
+    if ($answer) {
+      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from answers WHERE id = :id)");
+      $stmt->execute([":id" => $answer]);
+      $answer_exists = (bool)$stmt->fetchColumn();
+      if (!$answer_exists) {
         redirect("add_problem", [], "Answer not found");
       }
     }
     if ($contest) {
-      $stmt = $db->prepare("SELECT id from contests WHERE id = :id");
+      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from contests WHERE id = :id)");
       $stmt->execute([":id" => $contest]);
-      $contest = $stmt->fetchColumn();
-      if (!$contest) {
+      $contest_exists = (bool)$stmt->fetchColumn();
+      if (!$contest_exists) {
         redirect("add_problem", [], "Contest not found");
       }
     }
@@ -216,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $statement = trim($_POST['statement'] ?? "");
     $template = trim($_POST['template_text'] ?? "");
     $note = trim($_POST['note'] ?? "") ?: null;
-    $answer_text = trim($_POST['answer'] ?? "");
+    $answer = (int)$_POST['answer'] ?: null;
     $contest = (int)$_POST['contest'] ?: null;
     if (empty($title) || empty($statement)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
@@ -231,19 +231,19 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     if (empty($template)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
-    if ($answer_text) {
-      $stmt = $db->prepare("SELECT id from answers WHERE body = :body");
-      $stmt->execute([":body" => $answer_text]);
-      $answer = $stmt->fetchColumn();
-      if (!$answer) {
+    if ($answer) {
+      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from answers WHERE id = :id)");
+      $stmt->execute([":id" => $answer]);
+      $answer_exists = (bool)$stmt->fetchColumn();
+      if (!$answer_exists) {
         redirect("edit_problem", ["id" => $id], "Answer not found");
       }
     }
     if ($contest) {
-      $stmt = $db->prepare("SELECT id from contests WHERE id = :id");
+      $stmt = $db->prepare("SELECT EXISTS(SELECT 1 from contests WHERE id = :id)");
       $stmt->execute([":id" => $contest]);
-      $contest = $stmt->fetchColumn();
-      if (!$contest) {
+      $contest_exists = (bool)$stmt->fetchColumn();
+      if (!$contest_exists) {
         redirect("edit_problem", ["id" => $id], "Contest not found");
       }
     }

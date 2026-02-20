@@ -7,8 +7,8 @@
 <?php if ($answers): ?>
   <?php foreach ($answers as $a): ?>
     <?php if ($is_admin): ?>
-      <span style="margin: -8px; position: absolute; z-index: 10; font-size: 0.7em" class="admin-link">
-        <a href="index.php?action=edit_answer&id=<?= $a['id']?>">[Edit]</a>
+      <span style="margin: -10px; position: absolute; z-index: 10; font-size: 0.8em" class="admin-link">
+        <a href="index.php?action=edit_answer&id=<?= $a['id']?>">[#<?= $a['id'] ?>]</a>
       </span>
     <?php endif; ?>
     <div style="margin-bottom: 10px" class="code-container">

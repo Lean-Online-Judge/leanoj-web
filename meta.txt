@@ -1,0 +1,10 @@
+exitsig:2
+status:SG
+message:Interrupted
+killed:1
+time:5.960
+time-wall:147.991
+max-rss:600
+csw-voluntary:5
+csw-forced:0
+cg-mem:2273776

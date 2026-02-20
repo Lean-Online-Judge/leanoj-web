@@ -69,8 +69,7 @@
     input[name="repeat-password"] {
       margin-bottom: 18px;
     }
-    input[name="title"],
-    input[name="answer"] {
+    input[name="title"] {
       width: 100%;
       box-sizing: border-box;
     }
