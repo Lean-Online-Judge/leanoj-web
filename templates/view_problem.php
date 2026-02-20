@@ -1,7 +1,15 @@
 <h2>
   <?= htmlspecialchars($problem['title']) ?>
   <?php if ($is_admin): ?>
-    <span class="admin-link"><a href="index.php?action=edit_problem&id=<?= $problem['id'] ?>">[Edit]</a></span>
+    <span class="admin-link">
+      <a href="index.php?action=edit_problem&id=<?= (int)$problem['id'] ?>">[Edit]</a>
+    </span>
+    <?php if ($problem['contest']): ?>
+      <form method="POST" action="index.php?action=toggle_archive" style="display:inline;">
+        <input type="hidden" name="id" value="<?= (int)$problem['id'] ?>">
+        <input type="submit" value=<?= $problem['archived'] ? "Unarchive": "Archive"?>>
+      </form>
+    <?php endif; ?>
   <?php endif; ?>
 </h2>
 <?php if ($can_view): ?>

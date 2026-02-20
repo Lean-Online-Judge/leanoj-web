@@ -152,7 +152,7 @@
   <a href="index.php" class="logo">Lean Online Judge</a>
   <nav>
     <a href="index.php?action=info">What is this?</a>
-    <a href="index.php">Problems</a>
+    <a href="index.php">Problem Archive</a>
     <a href="index.php?action=view_contests">Contests</a>
     <a href="index.php?action=view_answers">Answer Bank</a>
     <a href="index.php?action=scoreboard">Scoreboard</a>

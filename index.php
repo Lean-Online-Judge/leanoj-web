@@ -164,6 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $template = trim($_POST['template_text'] ?? "");
     $answer = (int)$_POST['answer'] ?: null;
     $contest = (int)$_POST['contest'] ?: null;
+    $archived = empty($contest);
     if (!empty($_FILES['template_file']['tmp_name'])) {
       $err = validate_file('template_file');
       if ($err) {
@@ -191,14 +192,8 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       }
     }
     $stmt = $db->prepare("
-      INSERT INTO problems (title, statement, note, template, answer, contest)
-      VALUES (:title, :statement, :note, :template, :answer, :contest)");
-    $stmt->bindValue(":title", $title);
-    $stmt->bindValue(":statement", $statement);
-    $stmt->bindValue(":note", $note);
-    $stmt->bindValue(":template", $template);
-    $stmt->bindValue(":answer", $answer);
-    $stmt->bindValue(":contest", $contest);
+      INSERT INTO problems (title, statement, template, note, answer, contest, archived)
+      VALUES (:title, :statement, :template, :note, :answer, :contest, :archived)");
     $stmt->execute([
       ":title" => $title,
       ":statement" => $statement,
@@ -206,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       ":template" => $template,
       ":answer" => $answer,
       ":contest" => $contest,
+      ":archived" => $archived,
     ]);
     redirect("view_problem", ["id" => $db->lastInsertId()]);
   }
@@ -218,6 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $note = trim($_POST['note'] ?? "") ?: null;
     $answer = (int)$_POST['answer'] ?: null;
     $contest = (int)$_POST['contest'] ?: null;
+    $archived = empty($contest);
     if (empty($title) || empty($statement)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
@@ -250,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $stmt = $db->prepare("
       UPDATE problems
       SET title = :title, statement = :statement, note = :note, template = :template,
-        answer = :answer, contest = :contest
+        answer = :answer, contest = :contest, archived = :archived
       WHERE id = :id");
     $stmt->execute([
       ":id" => $id,
@@ -260,6 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       ":template" => $template,
       ":answer" => $answer,
       ":contest" => $contest,
+      ":archived" => $archived,
     ]);
     redirect("view_problem", ["id" => $id]);
   }
@@ -355,6 +353,13 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $stmt->execute([":id" => $id]);
     redirect("view_submission", ["id" => $id]);
   }
+
+  elseif ($action === "toggle_archive" && $is_admin) {
+    $id = (int)$_POST['id'];
+    $stmt = $db->prepare("UPDATE problems SET archived = not archived WHERE id = :id");
+    $stmt->execute([":id" => $id]);
+    redirect("view_problem", ["id" => $id]);
+  }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === "GET") {
@@ -382,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
         EXISTS(SELECT 1 FROM submissions WHERE problem = p.id AND user = :user_id AND
           status = 'PASSED' AND p.title != 'xyzzy') as is_solved
       FROM problems p
-      WHERE p.contest IS NULL
+      WHERE p.archived
       ORDER BY p.id DESC
       LIMIT :limit OFFSET :offset");
     $stmt->bindValue(":limit", $per_page, PDO::PARAM_INT);
@@ -407,7 +412,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       LEFT JOIN (SELECT s.user, s.problem, MIN(s.id) AS first_pass
         FROM submissions s
         JOIN problems p ON s.problem = p.id
-        WHERE p.title != 'xyzzy' AND p.contest IS NULL AND s.status = 'PASSED'
+        WHERE p.title != 'xyzzy' AND p.archived AND s.status = 'PASSED'
         GROUP BY s.user, s.problem
         ) AS first_passes ON u.id = first_passes.user
       GROUP BY u.id
