@@ -61,24 +61,6 @@ function separate_imports($content) {
   ];
 }
 
-function check_can_submit($db, $problem_id) {
-  $stmt = $db->prepare("
-    SELECT p.contest, c.start, c.end
-    FROM problems p
-    LEFT JOIN contests c ON p.contest = c.id
-    WHERE p.id = :id");
-  $stmt->execute([":id" => $problem_id]);
-  $problem = $stmt->fetch();
-  if ($problem['contest']) {
-    $cur = time();
-    $start = strtotime($problem['start']);
-    $end = strtotime($problem['end']);
-    if ($cur < $start || $cur > $end) {
-      return "Contest is inactive";
-    }
-  }
-}
-
 if ($action === "logout") {
   session_destroy();
   redirect("view_problems");
@@ -130,10 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
   elseif ($action === "submit_solution" && $user_id) {
     $problem_id = $_POST['problem_id'] ?? 0;
-    $err = check_can_submit($db, $problem_id);
-    if ($err) {
-      redirect("view_problem", ["id" => $problem_id], $err);
-    }
+    $time = date("Y-m-d\TH:i", time());
     $source_code = trim($_POST['source_text'] ?? "");
     if (!empty($_FILES['source_file']['tmp_name'])) {
       $err = validate_file('source_file');
@@ -146,13 +125,14 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       redirect("view_problem", ["id" => $problem_id], "Solution can't be empty");
     }
     $stmt = $db->prepare("
-      INSERT INTO submissions (problem, user, source, status)
-      VALUES (:problem, :user, :source, :status)");
+      INSERT INTO submissions (problem, user, source, status, time)
+      VALUES (:problem, :user, :source, :status, :time)");
     $stmt->execute([
       ":problem" => $problem_id,
       ":user" => $user_id,
       ":source" => $source_code,
       ":status" => "PENDING",
+      ":time" => $time,
     ]);
     redirect("view_problem", ["id" => $problem_id]);
   }
@@ -409,7 +389,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       SELECT u.username, COUNT(first_passes.problem) AS solved,
         MAX(first_passes.first_pass) AS last_first_pass
       FROM users u
-      LEFT JOIN (SELECT s.user, s.problem, MIN(s.id) AS first_pass
+      LEFT JOIN (SELECT s.user, s.problem, MIN(s.time) AS first_pass
         FROM submissions s
         JOIN problems p ON s.problem = p.id
         WHERE p.title != 'xyzzy' AND p.archived AND s.status = 'PASSED'
@@ -449,15 +429,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       ORDER BY s.id DESC LIMIT 10");
     $stmt->execute(["id" => $id]);
     $recent_submissions = $stmt->fetchAll();
-
     $can_view = true;
-    $can_submit = true;
     if ($problem['contest']) {
       $cur = time();
       $start = strtotime($problem['start']);
-      $end = strtotime($problem['end']);
       $can_view = $is_admin || $cur >= $start;
-      $can_submit = $cur <= $end;
     }
     include "templates/view_problem.php";
   }
@@ -617,13 +593,19 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       redirect("view_contests", [], "Not found");
     }
     $stmt = $db->prepare("
-      SELECT p.*,
-      (SELECT COUNT(DISTINCT user) FROM submissions
-        WHERE problem = p.id AND status = 'PASSED') as solves,
+      SELECT p.*, (SELECT COUNT(DISTINCT user) FROM submissions
+        WHERE (time IS NULL OR (:start <= time AND time <= :end))
+          AND problem = p.id AND status = 'PASSED') as solves,
       EXISTS(SELECT 1 FROM submissions
-        WHERE problem = p.id AND user = :user_id AND status = 'PASSED') as is_solved
+        WHERE (time IS NULL OR (:start <= time AND time <= :end))
+          AND problem = p.id AND user = :user_id AND status = 'PASSED'
+      ) as is_solved
       FROM problems p WHERE p.contest = :id");
-    $stmt->execute([":user_id" => $user_id, ":id" => $id]);
+    $stmt->execute([
+      ":user_id" => $user_id,
+      ":start" => $contest['start'],
+      ":end" => $contest['end'],
+      ":id" => $id]);
     $problems = $stmt->fetchAll();
     include "templates/view_contest.php";
   }
@@ -637,9 +619,10 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       SELECT COUNT(DISTINCT s.user)
       FROM submissions s
       JOIN problems p ON s.problem = p.id
-      WHERE s.status = 'PASSED' AND p.contest = :id");
-    $stmt->bindValue(":id", $id);
-    $stmt->execute();
+      LEFT JOIN contests c ON p.contest = c.id
+      WHERE (s.time IS NULL OR (c.start <= s.time AND s.time <= c.end))
+        AND c.id = :id");
+    $stmt->execute([":id" => $id]);
     $total_users = $stmt->fetchColumn();
     $total_pages = ceil($total_users / $per_page);
 
@@ -647,10 +630,12 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       SELECT u.username, COUNT(first_passes.problem) AS solved,
         MAX(first_passes.first_pass) AS last_first_pass
       FROM users u
-      JOIN (SELECT s.user, s.problem, MIN(s.id) AS first_pass
+      JOIN (SELECT s.user, s.problem, MIN(s.time) AS first_pass
         FROM submissions s
         JOIN problems p ON s.problem = p.id
-        WHERE p.contest = :id AND s.status = 'PASSED'
+        LEFT JOIN contests c ON p.contest = c.id
+        WHERE (s.time IS NULL OR (c.start <= s.time AND s.time <= c.end))
+          AND c.id = :id AND s.status = 'PASSED'
         GROUP BY s.user, s.problem
         ) AS first_passes ON u.id = first_passes.user
       GROUP BY u.id

@@ -10,6 +10,7 @@
       <tr>
         <th style="text-align: center">#</th>
         <th>User</th>
+        <th>Time (UTC)</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -22,6 +23,7 @@
             </a>
           </td>
           <td><?= htmlspecialchars($s['username']) ?></td>
+          <td><?= $s['time'] ?? "Long time ago" ?></td>
           <td class="status-cell">
             <span class="status-<?= strtolower($s['status']) ?>">
               <?= htmlspecialchars($s['status']) ?>

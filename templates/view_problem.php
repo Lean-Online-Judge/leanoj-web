@@ -22,8 +22,7 @@
     <pre><?= htmlspecialchars($problem['template']) ?></pre>
   </div>
   <h3>Submit Solution</h3>
-  <?php if ($can_submit): ?>
-    <?php if ($user_id): ?>
+  <?php if ($user_id): ?>
     <form action="index.php?action=submit_solution" method="POST" enctype="multipart/form-data">
       <input type="hidden" name="problem_id" value="<?= $problem['id'] ?>">
       <div>
@@ -34,11 +33,8 @@
     &nbsp;
     <input type="submit" value="Submit">
     </form>
-    <?php else: ?>
-      <p><a href="index.php?action=login">Login</a> to submit a solution.</p>
-    <?php endif; ?>
   <?php else: ?>
-    <p>Contest has ended.</p>
+    <p><a href="index.php?action=login">Login</a> to submit a solution.</p>
   <?php endif; ?>
   <h3>Recent Submissions</h3>
   <?php if ($recent_submissions): ?>
@@ -47,6 +43,7 @@
       <tr>
         <th style="text-align: center">#</th>
         <th>User</th>
+        <th>Time (UTC)</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -59,6 +56,7 @@
             </a>
           </td>
           <td><?= htmlspecialchars($s['username']) ?></td>
+          <td><?= $s['time'] ?? "Long time ago" ?></td>
           <td class="status-cell">
             <span class="status-<?= strtolower($s['status']) ?>">
               <?= htmlspecialchars($s['status']) ?>

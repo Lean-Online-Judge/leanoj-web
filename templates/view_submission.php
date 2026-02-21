@@ -13,6 +13,7 @@
       <th style="text-align: center">#</th>
       <th>User</th>
       <th>Problem</th>
+      <th>Time (UTC)</th>
       <th>Status</th>
     </tr>
   </thead>
@@ -29,6 +30,7 @@
           <?= htmlspecialchars($submission['title']) ?>
         </a>
       </td>
+      <td><?= $submission['time'] ?: "Long time ago" ?></td>
       <td class="status-cell">
         <span class="status-<?= strtolower($submission['status']) ?>">
           <?= htmlspecialchars($submission['status']) ?>
