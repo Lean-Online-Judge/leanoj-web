@@ -17,7 +17,7 @@
 <h3>See also</h3>
 <ul>
 <li>
-<a target="_blank" href="https://43.138.56.99:1349/p">Lean4OJ</a>: another online judge utilizing Lean but with a broader focus by <a href="index?action=scoreboard">Kitsune</a>.
+<a target="_blank" href="https://43.138.56.99:1349/p">Lean4OJ</a>: another online judge utilizing Lean but with a broader focus by <a href="index.php?action=scoreboard">Kitsune</a>.
 <li>
 <a target="_blank" href="https://dwrensha.github.io/compfiles/">Compfiles</a>: <em>Catalog Of Math Problems Formalized In Lean</em>.
 </ul>

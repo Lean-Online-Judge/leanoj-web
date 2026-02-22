@@ -150,7 +150,7 @@
 </head>
 <body>
 <div class="main-container">
-  <a href="index.php?action=info" class="logo">Lean Online Judge</a>
+  <a href="index.php?action=about" class="logo">Lean Online Judge</a>
   <nav>
     <a href="index.php?action=about">What is this?</a>
     <a href="index.php?action=guide">How to use it?</a>
