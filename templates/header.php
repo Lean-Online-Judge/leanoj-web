@@ -139,6 +139,7 @@
       font-weight: bold;
     }
     .status-pending {
+      font-size: 0.7rem;
       color: orange;
       font-weight: bold;
     }
@@ -149,10 +150,11 @@
 </head>
 <body>
 <div class="main-container">
-  <a href="index.php" class="logo">Lean Online Judge</a>
+  <a href="index.php?action=info" class="logo">Lean Online Judge</a>
   <nav>
-    <a href="index.php?action=info">What is this?</a>
-    <a href="index.php">Problem Archive</a>
+    <a href="index.php?action=about">What is this?</a>
+    <a href="index.php?action=guide">How to use it?</a>
+    <a href="index.php?action=view_problems">Problems</a>
     <a href="index.php?action=view_contests">Contests</a>
     <a href="index.php?action=view_answers">Answer Bank</a>
     <a href="index.php?action=scoreboard">Scoreboard</a>

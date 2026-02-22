@@ -405,8 +405,12 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     include "templates/scoreboard.php";
   }
 
-  elseif ($action === "info") {
-    include "templates/info.php";
+  elseif ($action === "about") {
+    include "templates/about.php";
+  }
+
+  elseif ($action === "guide") {
+    include "templates/guide.php";
   }
 
   elseif ($action === "view_problem") {
