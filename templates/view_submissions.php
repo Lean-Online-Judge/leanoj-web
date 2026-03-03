@@ -1,8 +1,11 @@
 <h3>
-  Submissions for
-  <a href="index.php?action=view_problem&id=<?= (int)$problem['id'] ?>">
-    <?= htmlspecialchars($problem['title']) ?>
-  </a>
+  Submissions
+  <?php if ($for_problem): ?>
+    for
+    <a href="index.php?action=view_problem&id=<?= (int)$problem['id'] ?>">
+      <?= htmlspecialchars($problem['title']) ?>
+    </a>
+  <?php endif; ?>
 </h3>
 <?php if ($submissions): ?>
   <table>
@@ -10,6 +13,7 @@
       <tr>
         <th style="text-align: center">#</th>
         <th>User</th>
+        <?php if (!$for_problem): ?><th>Problem</th><?php endif; ?>
         <th>Time (UTC)</th>
         <th>Status</th>
       </tr>
@@ -23,6 +27,13 @@
             </a>
           </td>
           <td><?= htmlspecialchars($s['username']) ?></td>
+          <?php if (!$for_problem): ?>
+            <td>
+              <a href="index.php?action=view_problem&id=<?= $s['problem']?>">
+                <?= htmlspecialchars($s['title']) ?>
+              </a>
+            </td>
+          <?php endif; ?>
           <td><?= $s['time'] ?? "Long time ago" ?></td>
           <td class="status-cell">
             <span class="status-<?= strtolower($s['status']) ?>">

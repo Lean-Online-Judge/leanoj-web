@@ -85,14 +85,22 @@
       resize: vertical;
     }
     table {
+      table-layout: fixed;
       border-collapse: collapse;
       border: 1px solid var(--border);
       margin: 10px 0;
+    }
+    .truncate {
+      max-width: 150px;
     }
     th, td {
       border: 1px solid var(--border);
       padding: 2px 12px;
       text-align: left;
+      max-width: 250px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     th {
       background-color: #eee;
@@ -153,9 +161,9 @@
   <a href="index.php?action=about" class="logo">Lean Online Judge</a>
   <nav>
     <a href="index.php?action=about">What is this?</a>
-    <a href="index.php?action=guide">How to use it?</a>
     <a href="index.php?action=view_problems">Problems</a>
     <a href="index.php?action=view_contests">Contests</a>
+    <a href="index.php?action=view_submissions">Submissions</a>
     <a href="index.php?action=view_answers">Answer Bank</a>
     <a href="index.php?action=scoreboard">Scoreboard</a>
     <?php if (isset($_SESSION['user_id'])): ?>
