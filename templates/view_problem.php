@@ -14,9 +14,14 @@
 </h2>
 <?php if ($can_view): ?>
   <p><?= nl2br(htmlspecialchars($problem['statement'])) ?></p>
-  <?php if ($problem['note']): ?>
-    <p style="font-size: 0.9em"><em><?= $problem['note'] ?></em></p>
+  <p style="font-size: 0.9em">
+    <em>Replace </em><code>sorry</code><em> in the template below with your solution.</em>
+  <?php if ($problem['answer']): ?>
+    <em>See </em><a href="index.php?action=view_answers">Answer Bank</a><em> for acceptible  </em><code>answer</code><em> declarations</em>.
   <?php endif; ?>
+    <em>Mathlib version used by the checker is </em><code>v4.28.0</code>.
+  </em>
+  </p>
   <div class="code-container">
     <button class="copy-button" type="button" onclick="copyCode(this)">Copy</button>
     <pre><?= htmlspecialchars($problem['template']) ?></pre>
