@@ -140,7 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
   elseif ($action === "add_problem" && $is_admin) {
     $title = trim($_POST['title'] ?? "");
     $statement = trim($_POST['statement'] ?? "");
-    $note = trim($_POST['note'] ?? "") ?: null;
     $template = trim($_POST['template_text'] ?? "");
     $answer = (int)$_POST['answer'] ?: null;
     $contest = (int)$_POST['contest'] ?: null;
@@ -172,12 +171,11 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       }
     }
     $stmt = $db->prepare("
-      INSERT INTO problems (title, statement, template, note, answer, contest, archived)
-      VALUES (:title, :statement, :template, :note, :answer, :contest, :archived)");
+      INSERT INTO problems (title, statement, template, answer, contest, archived)
+      VALUES (:title, :statement, :template, :answer, :contest, :archived)");
     $stmt->execute([
       ":title" => $title,
       ":statement" => $statement,
-      ":note" => $note,
       ":template" => $template,
       ":answer" => $answer,
       ":contest" => $contest,
@@ -191,7 +189,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $title = trim($_POST['title'] ?? "");
     $statement = trim($_POST['statement'] ?? "");
     $template = trim($_POST['template_text'] ?? "");
-    $note = trim($_POST['note'] ?? "") ?: null;
     $answer = (int)$_POST['answer'] ?: null;
     $contest = (int)$_POST['contest'] ?: null;
     $archived = empty($contest);
@@ -226,14 +223,13 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     }
     $stmt = $db->prepare("
       UPDATE problems
-      SET title = :title, statement = :statement, note = :note, template = :template,
+      SET title = :title, statement = :statement, template = :template,
         answer = :answer, contest = :contest, archived = :archived
       WHERE id = :id");
     $stmt->execute([
       ":id" => $id,
       ":title" => $title,
       ":statement" => $statement,
-      ":note" => $note,
       ":template" => $template,
       ":answer" => $answer,
       ":contest" => $contest,
