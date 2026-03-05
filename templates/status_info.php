@@ -15,7 +15,7 @@
   </p>
   <li>
   <p>
-    <span class="status-cell">Автор лох</span><br>
+    <span class="status-cell">Blame author</span><br>
     The author has made a mistake when preparing the problem (or it appeared after a <code>Mathlib</code> upgrade). Please, <a target="_blank" href="https://discord.gg/a4xYPXXBxU">contact</a> the admin if you encounter this.
   </p>
   <li>

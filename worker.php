@@ -95,7 +95,7 @@ while (true) {
 
     $options = [
       42 => "PASSED",
-      44 => "Автор лох",
+      44 => "Blame author",
       45 => "Compilation error",
       46 => "Environment error",
       47 => "Forbidden axiom",
