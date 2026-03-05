@@ -206,6 +206,3 @@
   <?php if (isset($_GET['message'])): ?>
     <div class="message"><?= htmlspecialchars($_GET['message']) ?></div>
   <?php endif; ?>
-  <div class="notification markdown">
-    It has been noticed that [`native_decide`](https://lean-lang.org/doc/reference/latest/find/?domain=Verso.Genre.Manual.doc.tactic&name=Lean.Parser.Tactic.nativeDecide) causes Environment errors. This is expected but not obvious behavior. A page explaining different submission verdicts will be added soon.
-  </div>
