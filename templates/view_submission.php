@@ -37,6 +37,7 @@
         <span class="status-<?= strtolower($submission['status']) ?>">
           <?= htmlspecialchars($submission['status']) ?>
         </span>
+        <a href="index.php?action=status_info">ⓘ</a>
       </td>
     </tr>
   </tbody>

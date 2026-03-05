@@ -95,7 +95,7 @@ while (true) {
 
     $options = [
       42 => "PASSED",
-      44 => "Judge error",
+      44 => "Автор лох",
       45 => "Compilation error",
       46 => "Environment error",
       47 => "Forbidden axiom",
@@ -104,9 +104,9 @@ while (true) {
     ];
 
     if ($metaStatus === "TO") {
-      $status = "Time limit exceeded";
+      $status = "Time out";
     } elseif (isset($meta["cg-oom-killed"]) && $meta["cg-oom-killed"] === "1") {
-      $status = "Memory limit exceeded";
+      $status = "Out of memory";
     } elseif (isset($options[$exitCode])) {
       $status = $options[$exitCode];
     } else {

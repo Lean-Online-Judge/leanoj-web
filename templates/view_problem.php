@@ -67,6 +67,7 @@
             <span class="status-<?= strtolower($s['status']) ?>">
               <?= htmlspecialchars($s['status']) ?>
             </span>
+            <a href="index.php?action=status_info">ⓘ</a>
           </td>
         </tr>
       <?php endforeach; ?>

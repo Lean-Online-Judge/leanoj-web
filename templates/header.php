@@ -174,9 +174,10 @@
       color: orange;
       font-weight: bold;
     }
-    .pagination a {
+    a {
       text-decoration: none;
     }
+
   </style>
 </head>
 <body>

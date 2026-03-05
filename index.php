@@ -665,6 +665,10 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     include "templates/results.php";
   }
 
+  elseif ($action === "status_info") {
+    include "templates/status_info.php";
+  }
+
   include "templates/footer.php";
 }
 ?>
