@@ -38,7 +38,7 @@
           <?php endif; ?>
           <td><?= $s['time'] ?? "Long time ago" ?></td>
           <td class="status-cell">
-            <span class="status-<?= strtolower($s['status']) ?>">
+            <span class="status-<?= str_replace(' ', '-', strtolower($s['status'])) ?>">
               <?= htmlspecialchars($s['status']) ?>
             </span>
             <a href="index.php?action=status_info">ⓘ</a>
