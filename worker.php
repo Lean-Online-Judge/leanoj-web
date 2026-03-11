@@ -1,125 +1,193 @@
 <?php
-
-$env_file = __DIR__ . '/.env';
-if (!file_exists($env_file)) {
-    die('Missing .env file');
-}
-
-$env = parse_ini_file($env_file, false, INI_SCANNER_RAW);
-if ($env === false || empty($env['DB_PATH'])) {
-    die('DB_PATH not configured in .env');
-}
-if (empty($env['CHECKER_FILES'])) {
-    die('CHECKER_FILES not configured in .env');
-}
-if (empty($env['LEAN_TOOLCHAIN'])) {
-    die('LEAN_TOOLCHAIN not configured in .env');
-}
-if (empty($env['CHECKER_PATH'])) {
-    die('CHECKER_PATH not configured in .env');
-}
-
-$db_path = $env['DB_PATH'];
-$checkerFiles = $env['CHECKER_FILES'];
-$toolchain = $env['LEAN_TOOLCHAIN'];
-$checkerPath = $env['CHECKER_PATH'];
-
-$db = new PDO("sqlite:$db_path");
+$env = parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
+$db = new PDO("sqlite:" . $env['DB_PATH']);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
+$toolchain = $env['LEAN_TOOLCHAIN'];
+$checkerFiles = $env['CHECKER_FILES'];
+$checkerBins = $env['CHECKER_BINS'];
+$out = [];
+$err = 0;
+
+function writeStatus($db, $id, $status) {
+  $stmt = $db->prepare("UPDATE submissions SET status = :status WHERE id = :id");
+  $stmt->bindValue(":status", $status);
+  $stmt->bindValue(":id", $id);
+  $stmt->execute();
+}
+
+function parseMeta($file) {
+  $meta = [];
+  foreach (file($file) as $line) {
+    $parts = explode(":", trim($line), 2);
+    if (count($parts) === 2) $meta[$parts[0]] = $parts[1];
+  }
+  return $meta;
+}
+
 echo "Worker started...\n";
+shell_exec("isolate --cg --init");
 
 while (true) {
-  $stmt = $db->prepare("SELECT s.*, p.template, p.title, p.answer, a.imports, a.body FROM submissions s JOIN problems p ON s.problem = p.id LEFT JOIN answers a ON p.answer = a.id WHERE s.status = 'PENDING' LIMIT 1");
+  $stmt = $db->prepare("
+    SELECT s.*, p.template, p.title, p.answer, a.imports, a.body
+    FROM submissions s
+    JOIN problems p ON s.problem = p.id
+    LEFT JOIN answers a ON p.answer = a.id
+    WHERE s.status = 'PENDING'
+    LIMIT 1"
+  );
   $stmt->execute();
-  $s = $stmt->fetch();
-  if ($s) {
-    echo "Processing submission #{$s["id"]}\n";
-
-    $boxId = 0;
-    $metaFile = __DIR__ . "/meta.txt";
-    $checkerBinary = ".lake/build/bin/check";
-
-    file_put_contents($checkerFiles . "/submission.lean", $s["source"]);
-    if ($s['title'] === "xyzzy") {
-      $checkerBinary = ".lake/build/bin/xyzzy";
-    } else {
-      file_put_contents($checkerFiles . "/template.lean", $s["template"]);
-    }
-    if ((int)$s['problem'] >= 30) {
-      if (isset($s['answer'])) {
-        file_put_contents($checkerFiles . "/answer.lean", $s["imports"] . "\n" . $s["body"]);
-        $checkerBinary = ".lake/build/bin/check_with_answer";
-      }
-    } else {
-      $checkerBinary = ".lake/build/bin/check_old";
-    }
-
-    $boxPath = trim(shell_exec("isolate --box-id=$boxId --cg --init"));
-
-    $leanPath = "/checker/.lake/packages/batteries/.lake/build/lib/lean:/checker/.lake/packages/Qq/.lake/build/lib/lean:/checker/.lake/packages/aesop/.lake/build/lib/lean:/checker/.lake/packages/proofwidgets/.lake/build/lib/lean:/checker/.lake/packages/importGraph/.lake/build/lib/lean:/checker/.lake/packages/mathlib/.lake/build/lib/lean:/checker/.lake/packages/plausible/.lake/build/lib/lean:/checker/.lake/packages/LeanSearchClient/.lake/build/lib/lean:";
-
-    $runCmd = [
-      "nice -n 19 isolate --run --cg --box-id=$boxId",
-      "--meta=" . escapeshellarg($metaFile),
-      "--cg-mem=4194304",
-      "--processes=0",
-      "--time=300.0",
-      "--wall-time=300.0",
-      "--dir=/usr/share=/usr/share",
-      "--dir=/box=" . escapeshellarg($checkerFiles) . ":rw",
-      "--dir=/lean=" . escapeshellarg($toolchain),
-      "--dir=/checker=" . escapeshellarg($checkerPath),
-      "--env=LEAN_PATH=" . escapeshellarg($leanPath),
-      "--env=PATH=/lean/bin:/usr/bin",
-      "--chdir=/checker",
-      "-- $checkerBinary /box"
-    ];
-
-    shell_exec(implode(" ", $runCmd));
-
-    $meta = [];
-    if (file_exists($metaFile)) {
-      foreach (file($metaFile) as $line) {
-        $parts = explode(":", trim($line), 2);
-        if (count($parts) === 2) $meta[$parts[0]] = $parts[1];
-      }
-    }
-
-    $exitCode = (int)($meta["exitcode"] ?? -1);
-    $metaStatus = $meta["status"] ?? "OK";
-
-    shell_exec("isolate --box-id=$boxId --cg --cleanup");
-    if (file_exists($metaFile)) unlink($metaFile);
-
-    $options = [
-      42 => "PASSED",
-      44 => "Blame author",
-      45 => "Compilation error",
-      46 => "Environment error",
-      47 => "Forbidden axiom",
-      48 => "Template mismatch",
-      49 => "Bad answer",
-    ];
-
-    if ($metaStatus === "TO") {
-      $status = "Time out";
-    } elseif (isset($meta["cg-oom-killed"]) && $meta["cg-oom-killed"] === "1") {
-      $status = "Out of memory";
-    } elseif (isset($options[$exitCode])) {
-      $status = $options[$exitCode];
-    } else {
-      $status = "Unknown error";
-    }
-
-    $stmt = $db->prepare("UPDATE submissions SET status = :status WHERE id = :id");
-    $stmt->bindValue(":status", $status);
-    $stmt->bindValue(":id", $s["id"]);
-    $stmt->execute();
-
-    echo "Processed submission #{$s["id"]}: $status\n";
-  } else {
-    sleep(2);
+  $row = $stmt->fetch();
+  if (!$row) {
+    sleep(1);
+    continue;
   }
+
+  echo "Processing submission #{$row["id"]}\n";
+  $status = "";
+
+  echo "Building submission...\n";
+  file_put_contents($checkerFiles . "/CheckerFiles/Submission.lean", $row["source"]);
+  $metaFile = __DIR__ . "/meta.txt";
+  $cmd = [
+    "isolate --cg --run --processes=0 --meta=$metaFile",
+    "--cg-mem=4194304",
+    "--time=60.0",
+    "--wall-time=300.0",
+    "--dir=/lean=" . escapeshellarg($toolchain),
+    "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+    "--chdir=/checker-files",
+    "-- /lean/bin/lake build CheckerFiles.Submission:olean"
+  ];
+  exec(implode(" ", $cmd), $out, $err);
+  # echo implode("\n", $out) . "\n";
+  $meta = parseMeta($metaFile);
+  unlink($metaFile);
+  if (isset($meta['status']) && $meta['status'] === "TO") {
+    $status = "Time out";
+  } elseif (isset($mega["cg-oom-killed"]) && $meta["cg-oom-killed"] === "1") {
+    $status = "Out of memory";
+  } elseif ($err) {
+    $status = "Compilation error";
+  }
+  if ($status) {
+    writeStatus($db, $row['id'], $status);
+    echo "Processed submission #{$row["id"]}: $status\n";
+    continue;
+  }
+
+  if ($row["title"] !== "xyzzy") {
+    echo "Building template...\n";
+    file_put_contents($checkerFiles . "/CheckerFiles/Template.lean", $row["template"]);
+    $cmd = [
+      "isolate --cg --run --processes=0",
+      "--dir=/lean=" . escapeshellarg($toolchain),
+      "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+      "--chdir=/checker-files",
+      "-- /lean/bin/lake build CheckerFiles.Template:olean"
+    ];
+    exec(implode(" ", $cmd), $out, $err);
+    if ($err) {
+      $status = "System error";
+      writeStatus($db, $row['id'], $status);
+      echo "Processed submission #{$row["id"]}: $status\n";
+      continue;
+    }
+
+    if ($row['answer']) {
+      echo "Building answer...\n";
+      file_put_contents(
+        $checkerFiles . "/CheckerFiles/Answer.lean",
+        $row["imports"] . "\n" . $row["body"]
+      );
+      $cmd = [
+        "isolate --cg --run --processes=0",
+        "--dir=/lean=" . escapeshellarg($toolchain),
+        "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+        "--chdir=/checker-files",
+        "-- /lean/bin/lake build CheckerFiles.Answer:olean"
+      ];
+      exec(implode(" ", $cmd), $out, $err);
+      if ($err) {
+        $status = "System error";
+        writeStatus($db, $row['id'], $status);
+        echo "Processed submission #{$row["id"]}: $status\n";
+        continue;
+      }
+
+      echo "Checking answer...\n";
+      $cmd = [
+        "isolate --cg --run --processes=0",
+        "--dir=/lean=" . escapeshellarg($toolchain),
+        "--dir=/bin=" . escapeshellarg($checkerBins),
+        "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+        "--chdir=/checker-files",
+        "-- /lean/bin/lake env /bin/check_answer CheckerFiles.Answer CheckerFiles.Submission"
+      ];
+      exec(implode(" ", $cmd), $out, $err);
+      if ($err) {
+        $status = "Bad answer";
+        writeStatus($db, $row['id'], $status);
+        echo "Processed submission #{$row["id"]}: $status\n";
+        continue;
+      }
+    }
+
+    echo "Checking declarations...\n";
+    $cmd = [
+      "isolate --cg --run --processes=0",
+      "--dir=/lean=" . escapeshellarg($toolchain),
+      "--dir=/bin=" . escapeshellarg($checkerBins),
+      "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+      "--chdir=/checker-files",
+      "-- /lean/bin/lake env /bin/check CheckerFiles.Template CheckerFiles.Submission"
+    ];
+    exec(implode(" ", $cmd), $out, $err);
+    if ($err) {
+      $status = "Template mismatch";
+      writeStatus($db, $row['id'], $status);
+      echo "Processed submission #{$row["id"]}: $status\n";
+      continue;
+    }
+  }
+
+  echo "Exporting...\n";
+  $cmd = [
+    "isolate --cg --run --processes=0",
+    "--dir=/lean=" . escapeshellarg($toolchain),
+    "--dir=/bin=" . escapeshellarg($checkerBins),
+    "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+    "--chdir=/checker-files",
+    "--stdout=/checker-files/submission.export",
+    "-- /lean/bin/lake env /bin/lean4export CheckerFiles.Submission -- solution"
+  ];
+  exec(implode(" ", $cmd), $out, $err);
+  if ($err) {
+    $status = "System error ";
+    writeStatus($db, $row['id'], $status);
+    echo "Processed submission #{$row["id"]}: $status\n";
+    continue;
+  }
+
+  echo "Type checking with Nanoda...\n";
+  $cmd = [
+    "isolate --cg --run --processes=0",
+    "--dir=/bin=" . escapeshellarg($checkerBins),
+    "--dir=/checker-files=" . escapeshellarg($checkerFiles) . ":rw",
+    "--chdir=/checker-files",
+    "-- /bin/nanoda_bin nanoda.json"
+  ];
+  exec(implode(" ", $cmd), $out, $err);
+  if ($err) {
+    $status = "Rejected";
+    writeStatus($db, $row['id'], $status);
+    echo "Processed submission #{$row["id"]}: $status\n";
+    continue;
+  }
+
+  $status = "PASSED";
+  writeStatus($db, $row['id'], $status);
+  echo "Processed submission #{$row["id"]}: $status\n";
 }
