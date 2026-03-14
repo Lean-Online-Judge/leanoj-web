@@ -16,7 +16,7 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
 $action = $_GET['action'] ?? "view_problems";
 $is_admin = ($_SESSION['username'] ?? "") === 'admin';
-$user_id = (int)$_SESSION['user_id'] ?: null;
+$user_id = (int)($_SESSION['user_id'] ?? 0);
 
 $stmt = $db->query("SELECT text FROM website WHERE name = 'message'");
 $message = $stmt->fetchColumn();
@@ -66,7 +66,7 @@ function separate_imports($content) {
 
 if ($action === "logout") {
   session_destroy();
-  redirect("view_problems");
+  redirect();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
@@ -349,14 +349,12 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === "GET") {
-  include "templates/header.php";
-
   if ($action === "register") {
-    include "templates/register.php";
+    $template = "templates/register.php";
   }
 
   elseif ($action === "login") {
-    include "templates/login.php";
+    $template = "templates/login.php";
   }
 
   elseif ($action === "view_problems") {
@@ -381,7 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $stmt->bindValue(":user_id", $user_id);
     $stmt->execute();
     $problems = $stmt->fetchAll();
-    include "templates/view_problems.php";
+    $template = "templates/view_problems.php";
   }
 
   elseif ($action === "scoreboard") {
@@ -408,15 +406,15 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();
     $scoreboard = $stmt->fetchAll();
-    include "templates/scoreboard.php";
+    $template = "templates/scoreboard.php";
   }
 
   elseif ($action === "about") {
-    include "templates/about.php";
+    $template = "templates/about.php";
   }
 
   elseif ($action === "guide") {
-    include "templates/guide.php";
+    $template = "templates/guide.php";
   }
 
   elseif ($action === "view_problem") {
@@ -445,7 +443,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       $start = strtotime($problem['start']);
       $can_view = $is_admin || $cur >= $start;
     }
-    include "templates/view_problem.php";
+    $template = "templates/view_problem.php";
   }
 
   elseif ($action === "view_submissions") {
@@ -491,7 +489,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     }
     $stmt->execute();
     $submissions = $stmt->fetchAll();
-    include "templates/view_submissions.php";
+    $template = "templates/view_submissions.php";
   }
 
   elseif ($action === "view_submission") {
@@ -522,7 +520,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       $is_xyzzy = ($submission['title'] === 'xyzzy');
       $show_source = $is_admin || $is_owner || ($is_solved && !$is_xyzzy);
     }
-    include "templates/view_submission.php";
+    $template = "templates/view_submission.php";
   }
 
   elseif ($action === "view_answers") {
@@ -538,7 +536,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();
     $answers = $stmt->fetchAll();
-    include "templates/view_answers.php";
+    $template = "templates/view_answers.php";
   }
 
   elseif ($action === "view_contests") {
@@ -555,11 +553,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
     $stmt->execute();
     $contests = $stmt->fetchAll();
-    include "templates/view_contests.php";
+    $template = "templates/view_contests.php";
   }
 
   elseif ($action === "add_problem" && $is_admin) {
-    include "templates/add_problem.php";
+    $template = "templates/add_problem.php";
   }
 
   elseif ($action === "edit_problem" && $is_admin) {
@@ -574,11 +572,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     if (!$problem) {
       redirect("view_problems", [], "Not found");
     }
-    include "templates/edit_problem.php";
+    $template = "templates/edit_problem.php";
   }
 
   elseif ($action === "add_answer" && $is_admin) {
-    include "templates/add_answer.php";
+    $template = "templates/add_answer.php";
   }
 
   elseif ($action === "edit_answer" && $is_admin) {
@@ -590,11 +588,11 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       redirect("view_answers", [], "Not found");
     }
     $answer_source = trim($answer['imports'] . "\n\n" . $answer['body']);
-    include "templates/edit_answer.php";
+    $template = "templates/edit_answer.php";
   }
 
   elseif ($action === "add_contest" && $is_admin) {
-    include "templates/add_contest.php";
+    $template = "templates/add_contest.php";
   }
 
   elseif ($action === "edit_contest" && $is_admin) {
@@ -606,7 +604,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     if (!$contest) {
       redirect("view_contests", [], "Not found");
     }
-    include "templates/edit_contest.php";
+    $template = "templates/edit_contest.php";
   }
 
   elseif ($action === "view_contest") {
@@ -633,7 +631,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       ":end" => $contest['end'],
       ":id" => $id]);
     $problems = $stmt->fetchAll();
-    include "templates/view_contest.php";
+    $template = "templates/view_contest.php";
   }
 
   elseif ($action === "results") {
@@ -672,12 +670,15 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $stmt->bindValue(":id", $id);
     $stmt->execute();
     $results = $stmt->fetchAll();
-    include "templates/results.php";
+    $template = "templates/results.php";
   }
 
   elseif ($action === "status_info") {
-    include "templates/status_info.php";
+    $template = "templates/status_info.php";
   }
+
+  include "templates/header.php";
+  include $template;
   include "templates/footer.php";
 }
 ?>
