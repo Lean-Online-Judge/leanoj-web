@@ -202,7 +202,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $template = trim($_POST['template_text'] ?? "");
     $answer = (int)$_POST['answer'] ?: null;
     $contest = (int)$_POST['contest'] ?: null;
-    $archived = empty($contest);
     if (empty($title) || empty($statement)) {
       redirect("edit_problem", ["id" => $id], "Fill in required fields");
     }
@@ -235,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $stmt = $db->prepare("
       UPDATE problems
       SET title = :title, statement = :statement, template = :template,
-        answer = :answer, contest = :contest, archived = :archived
+        answer = :answer, contest = :contest
       WHERE id = :id");
     $stmt->execute([
       ":id" => $id,
@@ -244,7 +243,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
       ":template" => $template,
       ":answer" => $answer,
       ":contest" => $contest,
-      ":archived" => $archived,
     ]);
     redirect("view_problem", ["id" => $id]);
   }
