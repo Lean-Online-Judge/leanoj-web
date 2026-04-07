@@ -27,7 +27,9 @@
             </a>
           </td>
           <td style="max-width: <?= $for_problem ? "300px" : "120px" ?>">
-            <?= htmlspecialchars($s['username']) ?>
+            <a href = "index.php?action=view_user&id=<?= $s['user']?>">
+              <?= htmlspecialchars($s['username']) ?>
+            </a>
           </td>
           <?php if (!$for_problem): ?>
             <td style="max-width: 280px">

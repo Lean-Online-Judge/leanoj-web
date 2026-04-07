@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       marked.use(markedKatex({
@@ -186,9 +187,11 @@
     <a href="index.php?action=view_submissions">Submissions</a>
     <a href="index.php?action=view_answers">Answer Bank</a>
     <a href="index.php?action=scoreboard">Scoreboard</a>
-    <?php if (isset($_SESSION['user_id'])): ?>
+    <?php if ($user_id): ?>
       <span>
-        <strong><?= htmlspecialchars($_SESSION['username']) ?></strong> |
+        <a href="index.php?action=view_user&id=<?= $user_id?>">
+          <strong><?= htmlspecialchars($_SESSION['username']) ?></strong> |
+        </a>
         <a href="index.php?action=logout">Logout</a>
       </span>
     <?php else: ?>

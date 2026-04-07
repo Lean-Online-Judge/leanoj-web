@@ -60,7 +60,9 @@
             </a>
           </td>
           <td style="max-width: 400px">
-            <?= htmlspecialchars($s['username']) ?>
+            <a href="index.php?action=view_user&id=<?= $s['user'] ?>">
+              <?= htmlspecialchars($s['username']) ?>
+            </a>
           </td>
           <td><?= $s['time'] ?? "Long time ago" ?></td>
           <td class="status-cell">

@@ -390,7 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $total_users = $total_stmt->fetchColumn();
     $total_pages = ceil($total_users / $per_page);
     $stmt = $db->prepare("
-      SELECT u.username, COUNT(first_passes.problem) AS solved,
+      SELECT u.username, u.id, COUNT(first_passes.problem) AS solved,
         MAX(first_passes.first_pass) AS last_first_pass
       FROM users u
       LEFT JOIN (SELECT s.user, s.problem, MIN(s.time) AS first_pass
@@ -430,7 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       redirect("view_problems", [], "Not found");
     }
     $stmt = $db->prepare("
-      SELECT s.*, u.username
+      SELECT s.*, u.username, u.id as user
       FROM submissions s
       JOIN users u ON s.user = u.id
       WHERE s.problem = :id
@@ -464,7 +464,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
       $total_submissions = $stmt->fetchColumn();
       $total_pages = ceil($total_submissions / $per_page);
       $stmt = $db->prepare("
-        SELECT s.*, u.username
+        SELECT s.*, u.username, u.id as user
         FROM submissions s
         JOIN users u ON s.user = u.id
         WHERE s.problem = :problem_id
@@ -495,7 +495,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
   elseif ($action === "view_submission") {
     $id = (int)$_GET['id'];
     $stmt = $db->prepare("
-      SELECT s.*, p.title, u.username
+      SELECT s.*, p.title, u.username, u.id as user
       FROM submissions s
       JOIN problems p ON s.problem = p.id
       JOIN users u ON s.user = u.id
@@ -651,7 +651,7 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $total_pages = ceil($total_users / $per_page);
 
     $stmt = $db->prepare("
-      SELECT u.username, COUNT(first_passes.problem) AS solved,
+      SELECT u.username, u.id, COUNT(first_passes.problem) AS solved,
         MAX(first_passes.first_pass) AS last_first_pass
       FROM users u
       JOIN (SELECT s.user, s.problem, MIN(s.time) AS first_pass
@@ -673,8 +673,45 @@ if ($_SERVER['REQUEST_METHOD'] === "GET") {
     $template = "templates/results.php";
   }
 
+  elseif ($action === "view_user") {
+    $id = (int)$_GET['id'];
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = :id");
+    $stmt->execute([":id" => $id]);
+    $user = $stmt->fetch();
+    $user['rating'] = 1200;
+    if (!$user) {
+      redirect("view_problems", [], "Not found");
+    }
+    $template = "templates/view_user.php";
+  }
+
   elseif ($action === "status_info") {
     $template = "templates/status_info.php";
+  }
+
+  elseif ($action === "get_submission_data") {
+    header('Content-Type: application/json');
+    $user = (int)($_GET['user'] ?? 0);
+    $stmt = $db->prepare("SELECT strftime('%Y-%m-%d', time) as date, COUNT(*) as count
+                          FROM submissions
+                          WHERE user = :user AND status = 'PASSED'
+                          AND time >= '2026-01-01' AND time < '2027-01-01'
+                          GROUP BY date");
+    $stmt->execute([":user" => $user]);
+    echo json_encode($stmt->fetchAll());
+    exit;
+  }
+
+  elseif ($action === "get_rating_history") {
+    header('Content-Type: application/json');
+    echo
+  '[
+    {
+      "date": "2026-04-07T00:00:00",
+      "rating": 1200
+    }
+  ]';
+    exit;
   }
 
   include "templates/header.php";

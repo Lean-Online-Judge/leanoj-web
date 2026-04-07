@@ -13,7 +13,9 @@
         <tr>
           <td><?= $offset + $index + 1 ?></td>
           <td style="max-width: 400px">
-            <?= htmlspecialchars($row['username']) ?>
+            <a href="index.php?action=view_user&id=<?= $row['id'] ?>">
+              <?= htmlspecialchars($row['username']) ?>
+            </a>
           </td>
           <td><?= (int)$row['solved'] ?></td>
         </tr>
