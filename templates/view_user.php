@@ -73,9 +73,9 @@
       rating: +d.rating
     }));
 
-    const width = 600;
-    const height = 300;
-    const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+    const width = 480;
+    const height = 240;
+    const margin = { top: 10, right: 20, bottom: 10, left: 10 };
 
     const svg = d3.select("#rating-graph")
       .append("svg")
