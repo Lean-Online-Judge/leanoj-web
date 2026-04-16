@@ -7,8 +7,6 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $toolchain = $env['LEAN_TOOLCHAIN'];
 $checkerFiles = $env['CHECKER_FILES'];
 $checkerBins = $env['CHECKER_BINS'];
-$out = [];
-$err = 0;
 
 function writeStatus($db, $id, $status) {
   $stmt = $db->prepare("UPDATE submissions SET status = :status WHERE id = :id");
@@ -30,6 +28,8 @@ echo "Worker started...\n";
 shell_exec("isolate --cg --init");
 
 while (true) {
+  $out = [];
+  $err = 0;
   $stmt = $db->prepare("
     SELECT s.*, p.template, p.title, p.answer, a.imports, a.body
     FROM submissions s
